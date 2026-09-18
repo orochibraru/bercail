@@ -7,6 +7,9 @@
 	};
 
 	let { websites }: Props = $props();
+
+	// 20189 -> "20.2K", so every tile fits at any width; the exact count is in the tooltip.
+	const compact = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 });
 </script>
 
 <div class="grid grid-cols-1 gap-2.5 xl:grid-cols-2">
@@ -30,15 +33,16 @@
 						<div class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
 							{range.label}
 						</div>
-						<div class="mt-2 flex items-baseline gap-1.5">
-							<span class="text-primary text-3xl leading-none font-extrabold">
-								{range.visitors}
-							</span>
-							<span class="text-primary/80 text-sm">visitors</span>
+						<div
+							class="text-primary mt-2 text-3xl leading-none font-extrabold"
+							title="{range.visitors} visitors"
+						>
+							{compact.format(range.visitors)}
 						</div>
-						<div class="mt-1.5 flex items-baseline gap-1.5">
+						<div class="text-primary/80 mt-1 text-sm">visitors</div>
+						<div class="mt-1.5 flex items-baseline gap-1.5" title="{range.pageviews} views">
 							<span class="text-lg leading-none font-bold text-sky-600 dark:text-sky-400"
-								>{range.pageviews}</span
+								>{compact.format(range.pageviews)}</span
 							>
 							<span class="text-sm text-sky-600/80 dark:text-sky-400/80">views</span>
 						</div>
