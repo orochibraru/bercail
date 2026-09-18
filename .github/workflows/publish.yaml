@@ -27,6 +27,8 @@ jobs:
     name: Compute Release Version
     # Sequenced after code quality: three concurrent jobs OOM-kill svelte-check on the runner.
     needs: [code_quality]
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.compute.outputs.tag }}
@@ -34,7 +36,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
 
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
@@ -108,7 +110,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
 
       - name: Setup bun
         uses: oven-sh/setup-bun@v2

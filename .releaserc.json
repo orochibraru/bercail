@@ -1,5 +1,6 @@
 {
 	"branches": ["main"],
+	"repositoryUrl": "git@github.com:orochibraru/bercail.git",
 	"plugins": [
 		[
 			"@semantic-release/commit-analyzer",
