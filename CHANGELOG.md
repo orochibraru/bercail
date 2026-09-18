@@ -1,3 +1,11 @@
+## [1.0.1](https://github.com/orochibraru/bercail/compare/v1.0.0...v1.0.1) (2026-09-18)
+
+### Features
+
+* docs ([3e4d5bc](https://github.com/orochibraru/bercail/commit/3e4d5bcb6fcabab916def66c37f1e15533275cd4))
+* docs trigger ([7b74866](https://github.com/orochibraru/bercail/commit/7b74866614b1855a04380e76e1c7f7b126cfabaa))
+* link to analytics ([4a2291b](https://github.com/orochibraru/bercail/commit/4a2291b791a0cb9afdbd32dd56df51fffbdbe966))
+
 ## 1.0.0 (2026-09-18)
 
 ### Features
