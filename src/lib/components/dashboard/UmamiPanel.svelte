@@ -14,7 +14,12 @@
 		<div class="border-border bg-card min-w-0 rounded-lg border px-6 py-5">
 			<div class="flex items-center gap-3">
 				<ChartLineIcon class="text-primary size-9 flex-none" />
-				<span class="text-foreground truncate text-lg font-bold">{site.name}</span>
+				<a
+					href={site.url}
+					target="_blank"
+					rel="noopener noreferrer"
+					class="text-foreground truncate text-lg font-bold hover:underline">{site.name}</a
+				>
 				{#if site.active > 0}
 					<span class="text-primary text-sm font-medium">● {site.active} online</span>
 				{/if}

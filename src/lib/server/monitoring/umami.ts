@@ -4,6 +4,8 @@ export interface UmamiWebsiteStats {
 	id: string;
 	name: string;
 	domain: string;
+	/** The website's page on the Umami instance. */
+	url: string;
 	/** Visitors on the site right now (last 5 minutes, per Umami). */
 	active: number;
 	/** One entry per UMAMI_RANGES, in that order. */
@@ -77,7 +79,14 @@ export class UmamiClient {
 						return { label, visitors, pageviews };
 					}),
 				]);
-				return { id, name, domain, active: active.visitors, ranges };
+				return {
+					id,
+					name,
+					domain,
+					url: `${this.config.host}/websites/${id}`,
+					active: active.visitors,
+					ranges,
+				};
 			}),
 		);
 	}
