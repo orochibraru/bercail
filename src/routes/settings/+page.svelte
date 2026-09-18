@@ -11,8 +11,12 @@
 	import { toast } from 'svelte-sonner';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import { Input } from '#lib/components/ui/input/index.ts';
-	import Spinner from '#lib/components/Spinner.svelte';
 	import { exportBackup, restoreBackup } from '#lib/remote/dashboard.remote.ts';
+	import {
+		clearTasksSettings,
+		getTasksSettings,
+		saveTasksSettings
+	} from '#lib/remote/tasks.remote.ts';
 	import {
 		clearUmamiSettings,
 		getUmamiSettings,
@@ -145,6 +149,52 @@
 		} catch (error) {
 			console.error('Failed to clear Umami settings:', error);
 			toast.error('Failed to remove Umami settings');
+		}
+	}
+
+	let caldav = $state({ url: '', username: '', password: '' });
+	let caldavHasPassword = $state(false);
+	let caldavSaving = $state(false);
+
+	$effect(() => {
+		loadTasksSettings();
+	});
+
+	async function loadTasksSettings() {
+		try {
+			const saved = await getTasksSettings();
+			caldav = { url: saved.url, username: saved.username, password: '' };
+			caldavHasPassword = saved.hasPassword;
+		} catch (error) {
+			console.error('Failed to load tasks settings:', error);
+		}
+	}
+
+	async function saveTasks(event: SubmitEvent) {
+		event.preventDefault();
+		caldavSaving = true;
+		try {
+			await saveTasksSettings(caldav);
+			await getTasksSettings().refresh();
+			await loadTasksSettings();
+			toast.success('Tasks connected');
+		} catch (error) {
+			const message = (error as { body?: { message?: string } }).body?.message;
+			toast.error(message ?? 'Failed to save tasks settings');
+		} finally {
+			caldavSaving = false;
+		}
+	}
+
+	async function removeTasks() {
+		try {
+			await clearTasksSettings();
+			await getTasksSettings().refresh();
+			await loadTasksSettings();
+			toast.success('Tasks disconnected');
+		} catch (error) {
+			console.error('Failed to clear tasks settings:', error);
+			toast.error('Failed to remove tasks settings');
 		}
 	}
 
@@ -327,15 +377,50 @@
 		</label>
 		<div class="flex flex-wrap gap-2">
 			<Button type="submit" loading={umamiSaving} class="flex-1">
-				{#if umamiSaving}
-					<Spinner />
-				{:else}
-					<SaveIcon />
-				{/if}
+				{#if !umamiSaving}<SaveIcon />{/if}
 				Save
 			</Button>
 			{#if umamiHasApiKey}
 				<Button variant="outline" onclick={removeUmami} class="flex-1">
+					<XIcon />
+					Disconnect
+				</Button>
+			{/if}
+		</div>
+	</form>
+{/snippet}
+
+{#snippet tasksControls()}
+	<form class="flex flex-col gap-3" onsubmit={saveTasks}>
+		<label class="flex flex-col gap-1.5 text-sm font-medium">
+			CalDAV URL
+			<Input bind:value={caldav.url} type="url" placeholder="https://caldav.tasks.org" required />
+		</label>
+		<label class="flex flex-col gap-1.5 text-sm font-medium">
+			Username
+			<Input bind:value={caldav.username} autocomplete="off" required />
+		</label>
+		<label class="flex flex-col gap-1.5 text-sm font-medium">
+			App password
+			<Input
+				bind:value={caldav.password}
+				type="password"
+				autocomplete="off"
+				placeholder={caldavHasPassword ? 'Saved, leave blank to keep it' : 'Your app password'}
+				required={!caldavHasPassword}
+			/>
+			<span class="text-muted-foreground text-xs font-normal">
+				In the tasks.org app, open Settings, then Synchronization, then your Tasks.org account and
+				generate an app password.
+			</span>
+		</label>
+		<div class="flex flex-wrap gap-2">
+			<Button type="submit" loading={caldavSaving} class="flex-1">
+				{#if !caldavSaving}<SaveIcon />{/if}
+				Save
+			</Button>
+			{#if caldavHasPassword}
+				<Button variant="outline" onclick={removeTasks} class="flex-1">
 					<XIcon />
 					Disconnect
 				</Button>
@@ -352,19 +437,11 @@
 			variant="outline"
 			class="flex-1"
 		>
-			{#if backupLoading}
-				<Spinner />
-			{:else}
-				<SaveIcon />
-			{/if}
+			{#if !backupLoading}<SaveIcon />{/if}
 			Download backup
 		</Button>
 		<Button loading={restoreLoading} onclick={triggerFileInput} variant="outline" class="flex-1">
-			{#if restoreLoading}
-				<Spinner />
-			{:else}
-				<UploadIcon />
-			{/if}
+			{#if !restoreLoading}<UploadIcon />{/if}
 			Restore backup
 		</Button>
 		<input
@@ -399,6 +476,11 @@
 		'Analytics',
 		'Connect a self-hosted Umami instance to show visitor stats on the dashboard. The connection is tested before saving.',
 		umamiControls
+	)}
+	{@render section(
+		'Tasks',
+		'Show your open tasks from tasks.org, or from any CalDAV server like Nextcloud. The connection is tested before saving.',
+		tasksControls
 	)}
 	{@render section(
 		'Backup & restore',

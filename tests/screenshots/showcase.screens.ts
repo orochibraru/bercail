@@ -93,16 +93,32 @@ test("showcase", async ({ page }) => {
 	await page.waitForEvent("load");
 	await page.waitForLoadState("networkidle");
 
-	await page.getByPlaceholder("https://umami.example.com").fill(HOMELAB);
-	await page.locator('input[type="password"]').fill("demo");
-	await page.getByRole("button", { name: "Save" }).click();
+	const umami = page
+		.locator("form")
+		.filter({ has: page.getByPlaceholder("https://umami.example.com") });
+	await umami.getByPlaceholder("https://umami.example.com").fill(HOMELAB);
+	await umami.locator('input[type="password"]').fill("demo");
+	await umami.getByRole("button", { name: "Save" }).click();
 	await expect(page.getByText("Umami connected")).toBeVisible();
 	await expect(page.getByText("Umami connected")).toBeHidden();
+
+	const tasks = page
+		.locator("form")
+		.filter({ has: page.getByPlaceholder("https://caldav.tasks.org") });
+	await tasks
+		.getByPlaceholder("https://caldav.tasks.org")
+		.fill(`${HOMELAB}/dav`);
+	await tasks.getByLabel("Username").fill("demo");
+	await tasks.locator('input[type="password"]').fill("demo");
+	await tasks.getByRole("button", { name: "Save" }).click();
+	await expect(page.getByText("Tasks connected")).toBeVisible();
+	await expect(page.getByText("Tasks connected")).toBeHidden();
 	await shoot(page, "settings");
 
 	await page.goto("/");
 	await expect(page.getByLabel("Checking")).toHaveCount(0);
 	await expect(page.getByText("Blog", { exact: true })).toBeVisible();
+	await expect(page.getByText("Renew the domain")).toBeVisible();
 	await expect(page.getByText("Paris")).toBeVisible();
 	// Icons load lazily from a CDN.
 	await page.waitForLoadState("networkidle");

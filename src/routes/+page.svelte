@@ -7,6 +7,7 @@
 	import { reorderGroups, reorderItems } from '#lib/remote/dashboard.remote.ts';
 	import SystemStatsPanel from '#lib/components/dashboard/SystemStatsPanel.svelte';
 	import SystemStatsPanelSkeleton from '#lib/components/dashboard/SystemStatsPanelSkeleton.svelte';
+	import TasksPanel from '#lib/components/dashboard/TasksPanel.svelte';
 	import UmamiPanel from '#lib/components/dashboard/UmamiPanel.svelte';
 	import WeatherPanel from '#lib/components/dashboard/WeatherPanel.svelte';
 	import WeatherPanelSkeleton from '#lib/components/dashboard/WeatherPanelSkeleton.svelte';
@@ -18,6 +19,7 @@
 	import { formatUptime } from '#lib/helpers.ts';
 	import type { Group, Item } from '#lib/model.ts';
 	import type { WeatherData } from '#lib/server/monitoring/weather/weather-types.ts';
+	import type { Task } from '#lib/server/monitoring/caldav.ts';
 	import type { UmamiWebsiteStats } from '#lib/server/monitoring/umami.ts';
 	import type { MetricReading } from '#lib/server/monitoring/system/system-stats-types.ts';
 
@@ -113,6 +115,7 @@
 
 	// Kept across refreshes so the panel doesn't flicker; stays null (hidden) when Umami is off or failing.
 	let analytics: UmamiWebsiteStats[] | null = $state(null);
+	let tasks: Task[] | null = $state(null);
 
 	let linkStatuses: Record<string, boolean> | undefined = $state();
 
@@ -128,6 +131,13 @@
 		data.analytics.then(
 			(data) => {
 				analytics = data;
+			},
+			() => {}
+		);
+
+		data.tasks.then(
+			(data) => {
+				tasks = data;
 			},
 			() => {}
 		);
@@ -164,6 +174,9 @@
 		{/if}
 		{#if analytics}
 			<UmamiPanel websites={analytics} />
+		{/if}
+		{#if tasks}
+			<TasksPanel {tasks} />
 		{/if}
 	</div>
 

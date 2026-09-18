@@ -1,7 +1,9 @@
 import { uptime } from "node:os";
+import { CalDavSettings } from "#lib/server/settings/caldav-settings.ts";
 import { UmamiSettings } from "#lib/server/settings/umami-settings.ts";
 import { WeatherLocationSettings } from "#lib/server/settings/weather-location-settings.ts";
 import { dev } from "$app/env";
+import { CalDavClient, type Task } from "./caldav";
 import { LinkStatusService } from "./links/link-status-service";
 import { MonitoringConfig } from "./monitoring-config";
 import { SystemStatsService } from "./system/system-stats-service";
@@ -28,6 +30,10 @@ export class MonitoringService {
 	// Rebuilt whenever the settings change, like the weather provider below.
 	private umami: UmamiClient | null = null;
 	private umamiKey: string | null = null;
+
+	private readonly calDavSettings = new CalDavSettings();
+	private calDav: CalDavClient | null = null;
+	private calDavKey: string | null = null;
 
 	// Weather providers own a cache (CachedWeatherProvider), so we keep reusing
 	// the same instance while the resolved location doesn't change, and only
@@ -83,6 +89,20 @@ export class MonitoringService {
 			this.umamiKey = key;
 		}
 		return this.umami.getStats();
+	}
+
+	/** Null when no CalDAV account is connected, so the panel stays hidden. */
+	async getTasksSnapshot(): Promise<Task[] | null> {
+		const config = this.calDavSettings.get();
+		if (!config) {
+			return null;
+		}
+		const key = JSON.stringify(config);
+		if (!this.calDav || this.calDavKey !== key) {
+			this.calDav = new CalDavClient(config, dev ? 0 : undefined);
+			this.calDavKey = key;
+		}
+		return this.calDav.getTasks();
 	}
 
 	getUptimeSnapshot(): number {

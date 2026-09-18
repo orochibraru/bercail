@@ -16,6 +16,7 @@ export const load = async ({ depends, parent }) => {
 		weather: monitoringService.getWeatherSnapshot(),
 		system: monitoringService.getSystemSnapshot(),
 		analytics: monitoringService.getAnalyticsSnapshot(),
+		tasks: monitoringService.getTasksSnapshot(),
 		linkStatuses: monitoringService.getLinkStatuses(
 			dashboard.groups.flatMap((group) => group.items.map((item) => item.url)),
 		),
