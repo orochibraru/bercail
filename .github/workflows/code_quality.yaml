@@ -1,0 +1,66 @@
+name: Code Quality
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  TZ: Europe/Paris
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  CI: "true"
+  NO_COLOR: "1"
+
+jobs:
+  lint:
+    name: Linting / Formatting / Type checking
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Sync SvelteKit
+        run: bun run sync
+
+      # Same config as the local hook. The heavy gates are skipped here and run
+      # as their own named steps, so a failure says which gate broke.
+      - name: Run prek
+        uses: j178/prek-action@v3.0.0
+        env:
+          SKIP: lint-ts,test,check
+        with:
+          extra-args: --all-files --no-fail-fast
+
+      - name: Lint (TS)
+        run: bun run lint
+
+      - name: Type check
+        run: bun run check
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Build app
+        run: bun run build
+
+      - name: Tests (Unit)
+        run: bun run test

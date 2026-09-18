@@ -1,0 +1,130 @@
+name: Publish
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**/*.md"
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+env:
+  TZ: Europe/Paris
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  CI: true
+
+permissions:
+  contents: read
+
+jobs:
+  code_quality:
+    name: Code Quality
+    uses: ./.github/workflows/code_quality.yaml
+
+  version:
+    name: Compute Release Version
+    # Sequenced after code quality: three concurrent jobs OOM-kill svelte-check on the runner.
+    needs: [code_quality]
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.compute.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      # bunfig.toml forces Bun for `bun run`, which reports a Node version semantic-release rejects.
+      - name: Setup Node.js for semantic-release
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Dry-run release to compute the next version
+        id: compute
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if ! output="$(npx semantic-release --dry-run 2>&1)"; then
+            echo "$output"
+            echo "::error::semantic-release dry run failed, refusing to build images stamped with the wrong version"
+            exit 1
+          fi
+          echo "$output"
+          version="$(echo "$output" | grep -oE 'release version is [0-9]+\.[0-9]+\.[0-9]+' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | tail -n1)"
+          if [ -n "$version" ]; then
+            echo "This push will release v$version."
+            echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          else
+            echo "No release-worthy commits, tagging images with the commit SHA."
+            echo "tag=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    name: Docker Build
+    needs: [version]
+    uses: ./.github/workflows/docker.yaml
+    with:
+      image_tag: ${{ needs.version.outputs.tag }}
+      latest: true
+      image_name: orochibraru/bercail
+      registry_name: docker.io
+      registry_username: orochibraru
+      bake_target: app-ci
+    secrets:
+      registry_password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  publish:
+    name: Publish ${{ needs.version.outputs.tag }}
+    needs: [version, build]
+    uses: ./.github/workflows/docker-manifest.yaml
+    with:
+      image_name: orochibraru/bercail
+      registry_name: docker.io
+      registry_username: orochibraru
+      bake_target: app-ci
+    secrets:
+      registry_password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: [publish]
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      # bunfig.toml forces Bun for `bun run`, which reports a Node version semantic-release rejects.
+      - name: Setup Node.js for semantic-release
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release

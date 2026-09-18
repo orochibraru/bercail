@@ -1,0 +1,3 @@
+ignored:
+  # Debian's archive drops superseded package versions, so pins break the build within weeks.
+  - DL3008

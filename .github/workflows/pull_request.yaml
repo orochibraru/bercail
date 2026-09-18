@@ -1,0 +1,67 @@
+name: Pull Request
+on:
+  pull_request:
+
+concurrency:
+  group: pull-request-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  TZ: Europe/Paris
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  CI: true
+
+permissions:
+  contents: read
+
+jobs:
+  code_quality:
+    name: Code Quality
+    uses: ./.github/workflows/code_quality.yaml
+
+  build:
+    name: Docker Build
+    needs: [code_quality]
+    uses: ./.github/workflows/docker.yaml
+    with:
+      image_tag: pr-${{ github.event.pull_request.number }}
+      image_name: orochibraru/bercail
+      registry_name: docker.io
+      registry_username: orochibraru
+      bake_target: app-ci
+    secrets:
+      registry_password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  publish:
+    name: Publish pr-${{ github.event.pull_request.number }}
+    needs: [build]
+    uses: ./.github/workflows/docker-manifest.yaml
+    with:
+      image_name: orochibraru/bercail
+      registry_name: docker.io
+      registry_username: orochibraru
+      bake_target: app-ci
+    secrets:
+      registry_password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  # Set this as the single required status check in branch protection.
+  gate:
+    name: CI Gate
+    if: always()
+    needs: [code_quality, build, publish]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check results
+        run: |
+          results=(
+            "${{ needs.code_quality.result }}"
+            "${{ needs.build.result }}"
+            "${{ needs.publish.result }}"
+          )
+          for result in "${results[@]}"; do
+            if [[ "$result" == "failure" || "$result" == "cancelled" ]]; then
+              echo "::error::One or more jobs failed or were cancelled"
+              exit 1
+            fi
+          done
+          echo "All checks passed (skipped jobs are OK)"

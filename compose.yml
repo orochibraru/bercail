@@ -1,0 +1,16 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://0.0.0.0:3000"]
+      retries: 5
+      timeout: 3s
+      interval: 10s
+      start_period: 2s
+    environment:
+      ORIGIN: "${ORIGIN:-http://localhost:3000}" # please provide URL if different
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data

@@ -1,0 +1,102 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-merge-conflict
+        name: Look for Merge Conflicts
+
+      - id: check-case-conflict
+        name: Look for case conflicts
+
+      - id: check-yaml
+        name: Validate Yaml
+
+      - id: check-added-large-files
+        name: Look for large files
+
+      - id: mixed-line-ending
+        name: Fix line endings
+        args: [--fix=lf]
+        exclude: &generated |-
+          (?x)^(
+            drizzle/|
+            CHANGELOG\.md|
+            bun\.lock
+          )
+
+      - id: end-of-file-fixer
+        name: Fix end of files
+        exclude: *generated
+
+      - id: trailing-whitespace
+        name: Fix trailing whitespaces
+        args: [--markdown-linebreak-ext=md]
+        exclude: *generated
+
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.4.0
+    hooks:
+      - id: conventional-pre-commit
+        name: Ensure conventional commits
+        stages: [commit-msg]
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+        name: Look for hardcoded secrets
+
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.50.1
+    hooks:
+      - id: typos
+        name: Look for typos
+        args: [--force-exclude]
+
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint
+        name: Lint Github Actions
+
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.15.1
+    hooks:
+      - id: hadolint-docker
+        name: Lint Docker
+
+  - repo: local
+    hooks:
+      - id: format-ts
+        name: Formatting (TS)
+        entry: bun run biome format --write --no-errors-on-unmatched
+        language: system
+        files: \.(ts|tsx|js|jsx|mjs|cjs|json|jsonc|css)$
+
+      - id: format-svelte-md
+        name: Formatting (Svelte, MD)
+        entry: bun run prettier --log-level warn --write
+        language: system
+        files: \.(svelte|md)$
+        exclude: ^CHANGELOG\.md$
+
+      - id: lint-ts
+        name: Lint (TS)
+        entry: bun run lint
+        language: system
+        pass_filenames: false
+        files: \.(ts|tsx|js|jsx|mjs|cjs|json|jsonc|css)$
+
+      - id: test
+        name: Unit Tests
+        entry: bun run test
+        language: system
+        pass_filenames: false
+        files: ^(src/|scripts/|bunfig\.toml$)
+
+      - id: check
+        name: Type Check
+        entry: bun run check
+        language: system
+        pass_filenames: false
+        files: ^(src/|scripts/|vite\.config\.ts$|tsconfig.*\.json$)

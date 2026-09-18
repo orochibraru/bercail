@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>New Tab</title>
+		<style>
+			html,
+			body {
+				margin: 0;
+				height: 100%;
+				background: oklch(0.967 0.001 286.375);
+				font-family: system-ui, sans-serif;
+			}
+			@media (prefers-color-scheme: dark) {
+				html,
+				body {
+					background: oklch(0.141 0.005 285.823);
+					color: #e5e7eb;
+				}
+			}
+			iframe {
+				display: block;
+				width: 100%;
+				height: 100%;
+				border: 0;
+			}
+			a {
+				display: block;
+				padding: 2rem;
+				color: inherit;
+			}
+		</style>
+		<script type="module" src="./newtab.ts"></script>
+	</head>
+	<body></body>
+</html>

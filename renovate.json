@@ -1,0 +1,62 @@
+{
+	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
+	"extends": ["config:recommended", ":semanticCommits", ":dependencyDashboard"],
+	"schedule": ["before 6am on monday"],
+	"prConcurrentLimit": 10,
+	"lockFileMaintenance": {
+		"enabled": true,
+		"schedule": ["before 6am on the first day of the month"]
+	},
+	"pre-commit": {
+		"enabled": true
+	},
+	"packageRules": [
+		{
+			"matchDepNames": ["typescript"],
+			"allowedVersions": "<7"
+		},
+		{
+			"description": "v10 needs conventional-changelog-writer 9, which @semantic-release/release-notes-generator 14 doesn't load",
+			"matchDepNames": ["conventional-changelog-conventionalcommits"],
+			"allowedVersions": "<10"
+		},
+		{
+			"matchPackageNames": [
+				"semantic-release",
+				"@semantic-release/**",
+				"conventional-changelog-**"
+			],
+			"groupName": "semantic-release"
+		},
+		{
+			"matchPackageNames": [
+				"semantic-release",
+				"@semantic-release/**",
+				"conventional-changelog-**"
+			],
+			"matchUpdateTypes": ["major"],
+			"dependencyDashboardApproval": true
+		},
+		{
+			"matchDepNames": ["bun", "oven/bun", "@types/bun"],
+			"groupName": "bun"
+		},
+		{
+			"matchPackageNames": ["svelte", "@sveltejs/**", "svelte-check"],
+			"groupName": "svelte"
+		},
+		{
+			"matchPackageNames": ["tailwindcss", "@tailwindcss/**"],
+			"groupName": "tailwind"
+		},
+		{
+			"matchPackageNames": ["drizzle-orm", "drizzle-kit", "drizzle-zod"],
+			"groupName": "drizzle"
+		},
+		{
+			"matchManagers": ["github-actions"],
+			"matchUpdateTypes": ["minor", "patch", "digest"],
+			"groupName": "GitHub Actions"
+		}
+	]
+}

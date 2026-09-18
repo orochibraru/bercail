@@ -1,0 +1,69 @@
+{
+	"version": "7",
+	"dialect": "sqlite",
+	"entries": [
+		{
+			"idx": 0,
+			"version": "6",
+			"when": 1761510156733,
+			"tag": "0000_solid_blacklash",
+			"breakpoints": true
+		},
+		{
+			"idx": 1,
+			"version": "6",
+			"when": 1761510536755,
+			"tag": "0001_eminent_tag",
+			"breakpoints": true
+		},
+		{
+			"idx": 2,
+			"version": "6",
+			"when": 1761513022131,
+			"tag": "0002_skinny_hercules",
+			"breakpoints": true
+		},
+		{
+			"idx": 3,
+			"version": "6",
+			"when": 1761513263907,
+			"tag": "0003_messy_squadron_supreme",
+			"breakpoints": true
+		},
+		{
+			"idx": 4,
+			"version": "6",
+			"when": 1783070402398,
+			"tag": "0004_aspiring_vampiro",
+			"breakpoints": true
+		},
+		{
+			"idx": 5,
+			"version": "6",
+			"when": 1783084148961,
+			"tag": "0005_faithful_enchantress",
+			"breakpoints": true
+		},
+		{
+			"idx": 6,
+			"version": "6",
+			"when": 1783158030935,
+			"tag": "0006_cheerful_vanisher",
+			"breakpoints": true
+		},
+		{
+			"idx": 7,
+			"version": "6",
+			"when": 1789640009710,
+			"tag": "0007_cold_lethal_legion",
+			"breakpoints": true
+		},
+		{
+			"idx": 8,
+			"version": "6",
+			"when": 1789649721440,
+			"tag": "0008_group_sort_order",
+			"breakpoints": true
+		}
+	]
+}

@@ -1,0 +1,1 @@
+ALTER TABLE `items_table` ADD `sortOrder` integer DEFAULT 0 NOT NULL;

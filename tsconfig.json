@@ -1,0 +1,10 @@
+{
+	"extends": "$app/tsconfig",
+	"compilerOptions": {
+		"sourceMap": true,
+		"strict": true,
+		"types": ["$app/types", "bun", "node"]
+	},
+	"include": ["src", "scripts/**/*.ts", "*.ts"],
+	"exclude": ["node_modules", "build", "src/service-worker.ts"]
+}
