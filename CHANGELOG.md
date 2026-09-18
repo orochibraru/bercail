@@ -1,3 +1,13 @@
+## [1.0.2](https://github.com/orochibraru/bercail/compare/v1.0.1...v1.0.2) (2026-09-18)
+
+### Features
+
+* showcase ([0e9bae4](https://github.com/orochibraru/bercail/commit/0e9bae4ea6ab6e5b8e51d2bf1859a81836d8f8ce))
+
+### Bug Fixes
+
+* analytics display ([1738936](https://github.com/orochibraru/bercail/commit/173893697ced039b89909d5ec1b3ab19dfe27914))
+
 ## [1.0.1](https://github.com/orochibraru/bercail/compare/v1.0.0...v1.0.1) (2026-09-18)
 
 ### Features
