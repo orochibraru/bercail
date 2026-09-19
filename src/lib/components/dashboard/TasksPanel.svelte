@@ -17,6 +17,7 @@
 	import Undo2Icon from '@lucide/svelte/icons/undo-2';
 	import { toast } from 'svelte-sonner';
 	import { invalidate } from '$app/navigation';
+	import RefreshButton from '#lib/components/dashboard/RefreshButton.svelte';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import { Calendar } from '#lib/components/ui/calendar/index.ts';
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.ts';
@@ -511,6 +512,7 @@
 				Add
 			</Button>
 		{/if}
+		<RefreshButton section="tasks" label="Tasks" class={cn(lists.length === 0 && 'ml-auto')} />
 	</div>
 	{#if rows.length === 0}
 		<p class="text-muted-foreground mt-3 text-sm">Nothing to do.</p>

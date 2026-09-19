@@ -15,12 +15,16 @@
 - **Tasks.** Your open tasks from [tasks.org](https://tasks.org/) or any CalDAV server (Nextcloud,
   Radicale, ...), soonest due first, with overdue ones in red. Connect it in Settings with the
   CalDAV URL, your username and an app password. Read-only.
+- **CI status.** The latest GitHub Actions run of each workflow on the default branch, per
+  repository. In Settings, register a read-only GitHub App in one click (optionally under an
+  organization), then install it on the repositories to watch. Cached for a minute.
 - **System stats.** CPU, RAM, disk, temperature and GPU gauges for the host the app runs on.
 - **Search.** `Cmd+K` / `Ctrl+K` opens a palette to jump to any link or search the web.
 - **Backup and restore.** Export your groups and links to JSON from Settings, and import them back.
 - **Light, dark and system themes.**
 
-The page refreshes its stats every 5 seconds.
+The page refreshes its stats every 5 seconds. Drag a section by the grip in its left margin to
+reorder the dashboard; the order is saved on the server.
 
 ![The search palette](images/search.png) ![The search palette, dark](images/search-dark.png)
 

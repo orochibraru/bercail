@@ -1,4 +1,5 @@
 <script lang="ts">
+	import RefreshButton from '#lib/components/dashboard/RefreshButton.svelte';
 	import CloudFogIcon from '@lucide/svelte/icons/cloud-fog';
 	import CloudLightningIcon from '@lucide/svelte/icons/cloud-lightning';
 	import CloudRainIcon from '@lucide/svelte/icons/cloud-rain';
@@ -114,7 +115,7 @@
 			{/each}
 		</div>
 	{:else}
-		<p class="text-muted-foreground text-xs">
+		<p class="text-muted-foreground mr-auto text-xs">
 			{#if locationConfigured}
 				Weather is temporarily unavailable.
 			{:else if locationState === 'requesting'}
@@ -128,4 +129,5 @@
 			{/if}
 		</p>
 	{/if}
+	<RefreshButton section="weather" label="Weather" class="-my-1 -mr-2 ml-auto sm:ml-0" />
 </div>

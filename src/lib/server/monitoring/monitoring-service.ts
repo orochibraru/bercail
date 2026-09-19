@@ -1,9 +1,11 @@
 import { uptime } from "node:os";
 import { CalDavSettings } from "#lib/server/settings/caldav-settings.ts";
+import { GithubSettings } from "#lib/server/settings/github-settings.ts";
 import { UmamiSettings } from "#lib/server/settings/umami-settings.ts";
 import { WeatherLocationSettings } from "#lib/server/settings/weather-location-settings.ts";
 import { dev } from "$app/env";
 import { CalDavClient, type NewTask, type TasksSnapshot } from "./caldav";
+import { GithubClient, type GithubRepoStatus } from "./github";
 import { LinkStatusService } from "./links/link-status-service";
 import { MonitoringConfig } from "./monitoring-config";
 import { SystemStatsService } from "./system/system-stats-service";
@@ -16,6 +18,7 @@ export const CACHED_SECTIONS = [
 	"weather",
 	"analytics",
 	"tasks",
+	"ci",
 	"links",
 ] as const;
 export type CachedSection = (typeof CACHED_SECTIONS)[number];
@@ -42,6 +45,10 @@ export class MonitoringService {
 	private readonly calDavSettings = new CalDavSettings();
 	private calDav: CalDavClient | null = null;
 	private calDavKey: string | null = null;
+
+	private readonly githubSettings = new GithubSettings();
+	private github: GithubClient | null = null;
+	private githubKey: string | null = null;
 
 	// Weather providers own a cache (CachedWeatherProvider), so we keep reusing
 	// the same instance while the resolved location doesn't change, and only
@@ -104,6 +111,20 @@ export class MonitoringService {
 		return this.calDavClient()?.getSnapshot() ?? null;
 	}
 
+	/** Null when no GitHub App is registered, so the panel stays hidden. */
+	async getCiSnapshot(): Promise<GithubRepoStatus[] | null> {
+		const config = this.githubSettings.get();
+		if (!config) {
+			return null;
+		}
+		const key = JSON.stringify(config);
+		if (!this.github || this.githubKey !== key) {
+			this.github = new GithubClient(config);
+			this.githubKey = key;
+		}
+		return this.github.getStatuses();
+	}
+
 	async addTask(listUrl: string, task: NewTask) {
 		await this.connectedCalDavClient().addTask(listUrl, task);
 	}
@@ -138,6 +159,9 @@ export class MonitoringService {
 				break;
 			case "tasks":
 				this.calDav?.clearCache();
+				break;
+			case "ci":
+				this.github?.clearCache();
 				break;
 			case "links":
 				this.linkStatus.clearCache();

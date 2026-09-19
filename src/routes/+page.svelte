@@ -1,10 +1,13 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
 	import { flip } from 'svelte/animate';
-	import { dragHandleZone, type DndEvent } from 'svelte-dnd-action';
+	import { dragHandle, dragHandleZone, type DndEvent } from 'svelte-dnd-action';
+	import GripVerticalIcon from '@lucide/svelte/icons/grip-vertical';
 	import { invalidate, refreshAll } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
-	import { reorderGroups, reorderItems } from '#lib/remote/dashboard.remote.ts';
+	import { reorderGroups, reorderItems, saveLayout } from '#lib/remote/dashboard.remote.ts';
+	import { mergeLayout, type Section } from '#lib/layout.ts';
+	import CiPanel from '#lib/components/dashboard/CiPanel.svelte';
 	import RefreshButton from '#lib/components/dashboard/RefreshButton.svelte';
 	import SystemStatsPanel from '#lib/components/dashboard/SystemStatsPanel.svelte';
 	import SystemStatsPanelSkeleton from '#lib/components/dashboard/SystemStatsPanelSkeleton.svelte';
@@ -21,6 +24,7 @@
 	import type { Group, Item } from '#lib/model.ts';
 	import type { WeatherData } from '#lib/server/monitoring/weather/weather-types.ts';
 	import type { TasksSnapshot } from '#lib/server/monitoring/caldav.ts';
+	import type { GithubRepoStatus } from '#lib/server/monitoring/github.ts';
 	import type { UmamiWebsiteStats } from '#lib/server/monitoring/umami.ts';
 	import type { MetricReading } from '#lib/server/monitoring/system/system-stats-types.ts';
 
@@ -117,8 +121,38 @@
 	// Kept across refreshes so the panel doesn't flicker; stays null (hidden) when Umami is off or failing.
 	let analytics: UmamiWebsiteStats[] | null = $state(null);
 	let tasks: TasksSnapshot | null = $state(null);
+	let ci: GithubRepoStatus[] | null = $state(null);
 
 	let linkStatuses: Record<string, boolean> | undefined = $state();
+
+	// Hidden sections stay out of the drag zone, so it has no empty slots to drop between.
+	function isVisible(section: Section) {
+		if (section === 'analytics') return analytics !== null;
+		if (section === 'work') return tasks !== null || ci !== null;
+		return true;
+	}
+	let sections = $derived(data.layout.filter(isVisible).map((id) => ({ id })));
+
+	function handleSectionConsider(event: CustomEvent<DndEvent<{ id: Section }>>) {
+		isDragging = true;
+		sections = event.detail.items;
+	}
+
+	async function handleSectionFinalize(event: CustomEvent<DndEvent<{ id: Section }>>) {
+		sections = event.detail.items;
+		try {
+			await saveLayout(
+				mergeLayout(
+					data.layout,
+					sections.map((section) => section.id)
+				)
+			);
+		} catch {
+			toast.error('Failed to save the new layout');
+		}
+		await refreshAll();
+		isDragging = false;
+	}
 
 	$effect(() => {
 		data.weather.then((data) => {
@@ -143,6 +177,13 @@
 			() => {}
 		);
 
+		data.ci.then(
+			(data) => {
+				ci = data;
+			},
+			() => {}
+		);
+
 		data.system.then((data) => {
 			system = { lastUpdated: Date.now(), data };
 		});
@@ -153,61 +194,97 @@
 	<title>{data.config.appTitle} - Dashboard</title>
 </svelte:head>
 
-<main class="flex flex-col gap-4.5">
-	<div class="flex flex-col gap-2.5">
-		{#if weather.data}
-			<RefreshButton section="weather" label="Weather" />
-			<WeatherPanel weather={weather.data.snapshot} locationConfigured={weather.data.configured} />
-		{:else}
-			{#await data.weather}
-				<WeatherPanelSkeleton />
-			{:catch}
-				<p>Failed to load weather</p>
-			{/await}
-		{/if}
-		{#if system.data}
-			<SystemStatsPanel stats={system.data} lastUpdated={system.lastUpdated} />
-		{:else}
-			{#await data.system}
-				<SystemStatsPanelSkeleton />
-			{:catch}
-				<p>Failed to load system stats</p>
-			{/await}
-		{/if}
-		{#if analytics}
-			<RefreshButton section="analytics" label="Analytics" />
-			<UmamiPanel websites={analytics} />
-		{/if}
-		{#if tasks}
-			<RefreshButton section="tasks" label="Tasks" />
-			<TasksPanel snapshot={tasks} />
-		{/if}
-	</div>
-
-	<RefreshButton section="links" label="Links" />
-	<div
-		class="flex flex-col gap-4.5"
-		use:dragHandleZone={{
-			items: groups,
-			type: 'group',
-			flipDurationMs: groupFlipDurationMs,
-			dropTargetStyle: {}
-		}}
-		onconsider={handleGroupConsider}
-		onfinalize={handleGroupFinalize}
-	>
-		{#each groups as group (group.id)}
-			<div animate:flip={{ duration: groupFlipDurationMs }}>
-				<DashboardGroup
-					{group}
-					{linkStatuses}
-					onConsider={handleConsider}
-					onFinalize={handleFinalize}
-				/>
-			</div>
-		{/each}
-	</div>
-	<EmptyGroup />
+<main
+	class="flex flex-col gap-4.5"
+	use:dragHandleZone={{
+		items: sections,
+		type: 'section',
+		flipDurationMs: groupFlipDurationMs,
+		dropTargetStyle: {}
+	}}
+	onconsider={handleSectionConsider}
+	onfinalize={handleSectionFinalize}
+>
+	{#each sections as section (section.id)}
+		<section class="relative min-w-0" animate:flip={{ duration: groupFlipDurationMs }}>
+			<!-- In the page gutter, so it doesn't eat into the panels. -->
+			<span
+				use:dragHandle
+				class="text-muted-foreground/50 hover:text-foreground absolute top-1.5 -left-5 cursor-grab active:cursor-grabbing"
+				title="Drag to reorder section"
+				aria-label="Drag to reorder section"
+			>
+				<GripVerticalIcon class="size-3.5" />
+			</span>
+			{#if section.id === 'overview'}
+				<div class="grid gap-2.5 xl:grid-cols-2">
+					<div class="grid min-w-0">
+						{#if weather.data}
+							<WeatherPanel
+								weather={weather.data.snapshot}
+								locationConfigured={weather.data.configured}
+							/>
+						{:else}
+							{#await data.weather}
+								<WeatherPanelSkeleton />
+							{:catch}
+								<p>Failed to load weather</p>
+							{/await}
+						{/if}
+					</div>
+					<div class="grid min-w-0">
+						{#if system.data}
+							<SystemStatsPanel stats={system.data} lastUpdated={system.lastUpdated} />
+						{:else}
+							{#await data.system}
+								<SystemStatsPanelSkeleton />
+							{:catch}
+								<p>Failed to load system stats</p>
+							{/await}
+						{/if}
+					</div>
+				</div>
+			{:else if section.id === 'analytics' && analytics}
+				<UmamiPanel websites={analytics} />
+			{:else if section.id === 'work'}
+				<div class="flex flex-col gap-2.5 xl:flex-row xl:items-start">
+					{#if tasks}
+						<div class="min-w-0 xl:flex-1"><TasksPanel snapshot={tasks} /></div>
+					{/if}
+					{#if ci}
+						<div class="min-w-0 xl:flex-1"><CiPanel repos={ci} /></div>
+					{/if}
+				</div>
+			{:else if section.id === 'links'}
+				<div class="flex flex-col gap-4.5">
+					<RefreshButton section="links" label="Links" class="-mb-3 self-end" />
+					<div
+						class="flex flex-col gap-4.5"
+						use:dragHandleZone={{
+							items: groups,
+							type: 'group',
+							flipDurationMs: groupFlipDurationMs,
+							dropTargetStyle: {}
+						}}
+						onconsider={handleGroupConsider}
+						onfinalize={handleGroupFinalize}
+					>
+						{#each groups as group (group.id)}
+							<div animate:flip={{ duration: groupFlipDurationMs }}>
+								<DashboardGroup
+									{group}
+									{linkStatuses}
+									onConsider={handleConsider}
+									onFinalize={handleFinalize}
+								/>
+							</div>
+						{/each}
+					</div>
+					<EmptyGroup />
+				</div>
+			{/if}
+		</section>
+	{/each}
 </main>
 
 <div class="text-muted-foreground mt-5 text-center text-[11px]">

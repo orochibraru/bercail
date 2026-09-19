@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { SaveIcon, UploadIcon } from '@lucide/svelte';
 	import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
+	import GitBranchIcon from '@lucide/svelte/icons/git-branch';
 	import ComputerIcon from '@lucide/svelte/icons/computer';
 	import MapPinIcon from '@lucide/svelte/icons/map-pin';
 	import MoonIcon from '@lucide/svelte/icons/moon';
@@ -12,6 +13,11 @@
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import { Input } from '#lib/components/ui/input/index.ts';
 	import { exportBackup, restoreBackup } from '#lib/remote/dashboard.remote.ts';
+	import {
+		clearGithubSettings,
+		getGithubSettings,
+		startGithubRegistration
+	} from '#lib/remote/github.remote.ts';
 	import {
 		clearTasksSettings,
 		getTasksSettings,
@@ -195,6 +201,58 @@
 		} catch (error) {
 			console.error('Failed to clear tasks settings:', error);
 			toast.error('Failed to remove tasks settings');
+		}
+	}
+
+	let github = $state<{ slug: string; htmlUrl: string } | null>(null);
+	let githubOrganization = $state('');
+	let githubRegistering = $state(false);
+
+	$effect(() => {
+		loadGithubSettings();
+	});
+
+	async function loadGithubSettings() {
+		try {
+			github = await getGithubSettings();
+		} catch (error) {
+			console.error('Failed to load GitHub settings:', error);
+		}
+	}
+
+	// GitHub's manifest flow takes a form POST to github.com, which then redirects back here.
+	async function registerGithubApp() {
+		githubRegistering = true;
+		try {
+			const { action, manifest } = await startGithubRegistration({
+				organization: githubOrganization
+			});
+			const form = document.createElement('form');
+			form.method = 'post';
+			form.action = action;
+			const input = document.createElement('input');
+			input.type = 'hidden';
+			input.name = 'manifest';
+			input.value = manifest;
+			form.append(input);
+			document.body.append(form);
+			form.submit();
+		} catch (error) {
+			console.error('Failed to start GitHub registration:', error);
+			toast.error('Failed to start GitHub registration');
+			githubRegistering = false;
+		}
+	}
+
+	async function removeGithub() {
+		try {
+			await clearGithubSettings();
+			await getGithubSettings().refresh();
+			await loadGithubSettings();
+			toast.success('GitHub disconnected');
+		} catch (error) {
+			console.error('Failed to clear GitHub settings:', error);
+			toast.error('Failed to remove GitHub settings');
 		}
 	}
 
@@ -429,6 +487,53 @@
 	</form>
 {/snippet}
 
+{#snippet githubControls()}
+	{#if github}
+		<div class="flex flex-col gap-3">
+			<p class="text-sm">
+				Connected as
+				<a
+					href={github.htmlUrl}
+					target="_blank"
+					rel="noopener noreferrer"
+					class="font-medium underline">{github.slug}</a
+				>. Disconnecting keeps the app on GitHub, delete it from its settings page there.
+			</p>
+			<div class="flex flex-wrap gap-2">
+				<Button href="{github.htmlUrl}/installations/new" class="flex-1">
+					<GitBranchIcon />
+					Choose repositories
+				</Button>
+				<Button variant="outline" onclick={removeGithub} class="flex-1">
+					<XIcon />
+					Disconnect
+				</Button>
+			</div>
+		</div>
+	{:else}
+		<form
+			class="flex flex-col gap-3"
+			onsubmit={(event) => {
+				event.preventDefault();
+				registerGithubApp();
+			}}
+		>
+			<label class="flex flex-col gap-1.5 text-sm font-medium">
+				Organization
+				<Input bind:value={githubOrganization} autocomplete="off" placeholder="Optional" />
+				<span class="text-muted-foreground text-xs font-normal">
+					Leave empty to register the app on your own account. A private app can only be installed
+					on the account that owns it.
+				</span>
+			</label>
+			<Button type="submit" loading={githubRegistering}>
+				{#if !githubRegistering}<GitBranchIcon />{/if}
+				Register GitHub App
+			</Button>
+		</form>
+	{/if}
+{/snippet}
+
 {#snippet backupControls()}
 	<div class="flex flex-wrap gap-2">
 		<Button
@@ -481,6 +586,11 @@
 		'Tasks',
 		'Show your open tasks from tasks.org, or from any CalDAV server like Nextcloud. The connection is tested before saving.',
 		tasksControls
+	)}
+	{@render section(
+		'CI status',
+		'Register a read-only GitHub App, then install it on the repositories whose GitHub Actions runs you want on the dashboard.',
+		githubControls
 	)}
 	{@render section(
 		'Backup & restore',

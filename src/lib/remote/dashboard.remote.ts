@@ -1,5 +1,6 @@
 import { error } from "@sveltejs/kit";
 import { z } from "zod";
+import { SECTIONS } from "#lib/layout.ts";
 import {
 	backupFileSchema,
 	groupFormSchema,
@@ -8,6 +9,7 @@ import {
 	reorderPayloadSchema,
 } from "#lib/model.ts";
 import { Dashboard } from "#lib/server/dashboard.ts";
+import { LayoutSettings } from "#lib/server/settings/layout-settings.ts";
 import { command, form } from "$app/server";
 
 const dashboard = new Dashboard();
@@ -57,4 +59,8 @@ export const restoreBackup = command(backupFileSchema, (backup) => {
 		console.error("Restore failed:", cause);
 		error(500, "Failed to restore backup");
 	}
+});
+
+export const saveLayout = command(z.array(z.enum(SECTIONS)), (layout) => {
+	new LayoutSettings().set(layout);
 });

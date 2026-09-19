@@ -10,9 +10,10 @@
 	type Props = {
 		section: CachedSection;
 		label: string;
+		class?: string;
 	};
 
-	let { section, label }: Props = $props();
+	let { section, label, class: className }: Props = $props();
 	let refreshing = $state(false);
 
 	async function refresh() {
@@ -28,16 +29,14 @@
 	}
 </script>
 
-<div class="-mb-1.5 flex justify-end">
-	<Button
-		variant="ghost"
-		size="sm"
-		class="text-muted-foreground h-6 text-xs"
-		disabled={refreshing}
-		onclick={refresh}
-		aria-label="Refresh {label.toLowerCase()}"
-	>
-		<RefreshCwIcon data-icon="inline-start" class={cn(refreshing && 'animate-spin')} />
-		{label}
-	</Button>
-</div>
+<Button
+	variant="ghost"
+	size="icon"
+	class={cn('text-muted-foreground size-7 flex-none', className)}
+	disabled={refreshing}
+	onclick={refresh}
+	title="Refresh {label.toLowerCase()}"
+	aria-label="Refresh {label.toLowerCase()}"
+>
+	<RefreshCwIcon class={cn('size-3.5', refreshing && 'animate-spin')} />
+</Button>
