@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.8](https://github.com/orochibraru/bercail/compare/v1.0.7...v1.0.8) (2026-09-19)
+
+### Features
+
+* ci status ([042941a](https://github.com/orochibraru/bercail/commit/042941a515258e90c63e7f253805c5bd484ddf28))
+
 ## [1.0.7](https://github.com/orochibraru/bercail/compare/v1.0.6...v1.0.7) (2026-09-19)
 
 ### Features
