@@ -16,28 +16,6 @@
 			"allowedVersions": "<7"
 		},
 		{
-			"description": "v10 needs conventional-changelog-writer 9, which @semantic-release/release-notes-generator 14 doesn't load",
-			"matchDepNames": ["conventional-changelog-conventionalcommits"],
-			"allowedVersions": "<10"
-		},
-		{
-			"matchPackageNames": [
-				"semantic-release",
-				"@semantic-release/**",
-				"conventional-changelog-**"
-			],
-			"groupName": "semantic-release"
-		},
-		{
-			"matchPackageNames": [
-				"semantic-release",
-				"@semantic-release/**",
-				"conventional-changelog-**"
-			],
-			"matchUpdateTypes": ["major"],
-			"dependencyDashboardApproval": true
-		},
-		{
 			"matchDepNames": ["bun", "oven/bun", "@types/bun"],
 			"groupName": "bun"
 		},
