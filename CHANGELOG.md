@@ -1,3 +1,9 @@
+## [1.0.4](https://github.com/orochibraru/bercail/compare/v1.0.3...v1.0.4) (2026-09-19)
+
+### Features
+
+* claude rules, tasks add button ([b10c2d2](https://github.com/orochibraru/bercail/commit/b10c2d2ae706270c294588373b273ec2f3711dff))
+
 ## [1.0.3](https://github.com/orochibraru/bercail/compare/v1.0.2...v1.0.3) (2026-09-18)
 
 ### Features
