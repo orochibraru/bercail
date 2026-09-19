@@ -1,10 +1,16 @@
 import { expect, test } from "bun:test";
 import { generateKeyPairSync, verify } from "node:crypto";
-import { appJwt, latestPerWorkflow, runState } from "./github";
+import { appJwt, latestPerWorkflow, runState, workflowName } from "./github";
 
-const run = (workflow_id: number, status: string, conclusion?: string) => ({
+const run = (
+	workflow_id: number,
+	status: string,
+	conclusion?: string,
+	event = "push",
+) => ({
 	workflow_id,
 	name: `wf${workflow_id}`,
+	event,
 	status,
 	conclusion: conclusion ?? null,
 	html_url: "",
@@ -18,13 +24,23 @@ test("runState maps GitHub run status and conclusion", () => {
 	expect(runState(run(1, "completed", "cancelled"))).toBe("neutral");
 });
 
-test("latestPerWorkflow keeps the newest run of each workflow", () => {
+test("latestPerWorkflow keeps the newest branch run of each workflow", () => {
 	const runs = [
+		run(3, "completed", "success", "dynamic"),
+		run(4, "completed", "success", "pull_request_target"),
 		run(1, "completed", "failure"),
-		run(2, "completed", "success"),
+		run(2, "completed", "success", "schedule"),
 		run(1, "completed", "success"),
 	];
-	expect(latestPerWorkflow(runs)).toEqual([runs[0], runs[1]]);
+	expect(latestPerWorkflow(runs)).toEqual([runs[2], runs[3]]);
+});
+
+test("workflowName turns a bare path into the file name", () => {
+	expect(workflowName(".github/workflows/docs-update.yaml")).toBe(
+		"docs-update",
+	);
+	expect(workflowName("CI")).toBe("CI");
+	expect(workflowName(null)).toBe("Workflow");
 });
 
 test("appJwt is a verifiable RS256 token issued by the app", () => {

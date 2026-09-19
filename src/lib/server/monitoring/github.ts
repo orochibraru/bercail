@@ -15,6 +15,7 @@ export interface GithubRepoStatus {
 interface WorkflowRun {
 	workflow_id: number;
 	name: string | null;
+	event: string;
 	status: string | null;
 	conclusion: string | null;
 	html_url: string;
@@ -37,12 +38,35 @@ export function runState({ status, conclusion }: WorkflowRun): RunState {
 	return "neutral";
 }
 
-/** Keeps the first (newest) run of each workflow. */
+/**
+ * What the default branch's health is made of. Leaves out pull_request_target runs (they carry
+ * the base branch) and GitHub's own "dynamic" ones: Dependabot updates, CodeQL default setup.
+ */
+const BRANCH_EVENTS = new Set([
+	"push",
+	"schedule",
+	"workflow_dispatch",
+	"release",
+	"workflow_run",
+]);
+
+/** Keeps the first (newest) branch run of each workflow. */
 export function latestPerWorkflow(runs: WorkflowRun[]): WorkflowRun[] {
 	const seen = new Set<number>();
 	return runs.filter(
-		(run) => !seen.has(run.workflow_id) && seen.add(run.workflow_id),
+		(run) =>
+			BRANCH_EVENTS.has(run.event) &&
+			!seen.has(run.workflow_id) &&
+			seen.add(run.workflow_id),
 	);
+}
+
+/** A workflow without a `name:` is called by its path: ".github/workflows/docs-update.yaml" -> "docs-update". */
+export function workflowName(name: string | null): string {
+	if (!name) {
+		return "Workflow";
+	}
+	return name.replace(/^.*\//, "").replace(/\.ya?ml$/, "");
 }
 
 /** A 9-minute app JWT, signed with the app's private key (RS256). */
@@ -125,7 +149,7 @@ export class GithubClient {
 							fullName: repo.full_name,
 							url: repo.html_url,
 							workflows: latestPerWorkflow(workflow_runs).map((run) => ({
-								name: run.name ?? "Workflow",
+								name: workflowName(run.name),
 								state: runState(run),
 								url: run.html_url,
 							})),
