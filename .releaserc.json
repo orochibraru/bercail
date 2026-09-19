@@ -32,7 +32,17 @@
 				"message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
 			}
 		],
-		["@semantic-release/github", { "assets": ["dist/bercail-extension.zip"] }]
+		[
+			"@semantic-release/github",
+			{
+				"assets": [
+					{
+						"path": "dist/bercail-extension.zip",
+						"name": "bercail-extension-${nextRelease.version}.zip"
+					}
+				]
+			}
+		]
 	],
 	"tagFormat": "v${version}"
 }
