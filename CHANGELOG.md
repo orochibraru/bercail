@@ -1,3 +1,15 @@
+## [1.0.6](https://github.com/orochibraru/bercail/compare/v1.0.5...v1.0.6) (2026-09-19)
+
+### Features
+
+* better caldav crud ([119df66](https://github.com/orochibraru/bercail/commit/119df66cb9b8a8066921dbdc045b747ca0cd88ba))
+* extension favicon ([60189cf](https://github.com/orochibraru/bercail/commit/60189cfb2e9a830bcfa406f09ebee2aa999e88ac))
+
+### Bug Fixes
+
+* adapter ([392e219](https://github.com/orochibraru/bercail/commit/392e2199d8b9a1c2d6ec17464c7c9fdc85f9fc34))
+* ci ([d9b7da6](https://github.com/orochibraru/bercail/commit/d9b7da653852f344f2181cf2d4a3a728bfc54997))
+
 ## [1.0.5](https://github.com/orochibraru/bercail/compare/v1.0.4...v1.0.5) (2026-09-19)
 
 ### Features
