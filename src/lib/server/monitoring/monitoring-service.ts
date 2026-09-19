@@ -112,6 +112,10 @@ export class MonitoringService {
 		await this.connectedCalDavClient().updateTask(uid, task);
 	}
 
+	async completeTask(uid: string, done: boolean) {
+		await this.connectedCalDavClient().completeTask(uid, done);
+	}
+
 	async deleteTask(uid: string) {
 		await this.connectedCalDavClient().deleteTask(uid);
 	}

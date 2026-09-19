@@ -84,6 +84,14 @@ export const updateTask = command(
 		writeTask("update", () => monitoringService.updateTask(uid, task)),
 );
 
+export const completeTask = command(
+	z.object({ uid: z.string(), done: z.boolean() }),
+	({ uid, done }) =>
+		writeTask(done ? "complete" : "reopen", () =>
+			monitoringService.completeTask(uid, done),
+		),
+);
+
 export const deleteTask = command(z.string(), (uid) =>
 	writeTask("delete", () => monitoringService.deleteTask(uid)),
 );

@@ -3,6 +3,7 @@ import {
 	buildTaskIcs,
 	CalDavClient,
 	CalDavError,
+	completeTaskIcs,
 	parseTasks,
 	sortTasks,
 	updateTaskIcs,
@@ -141,6 +142,23 @@ test("updateTaskIcs rewrites only the task's own fields", () => {
 	expect(parseTasks(updated, "L", now)).toEqual([
 		{ uid: "x", title: "New", list: "L", due: null, priority: 9 },
 	]);
+});
+
+test("completeTaskIcs marks a task done and undoes it", () => {
+	const ics = [
+		"BEGIN:VCALENDAR",
+		vtodo("UID:x", "SUMMARY:Do", "STATUS:NEEDS-ACTION"),
+		"END:VCALENDAR",
+	].join("\r\n");
+
+	const done = completeTaskIcs(ics, "x", true, now);
+	expect(done).toContain("STATUS:COMPLETED");
+	expect(done.match(/STATUS:/g)).toHaveLength(1);
+	expect(parseTasks(done, "L", now)).toEqual([]);
+
+	const reopened = completeTaskIcs(done, "x", false, now);
+	expect(reopened).not.toContain("COMPLETED:");
+	expect(parseTasks(reopened, "L", now)).toHaveLength(1);
 });
 
 // A fake server answering the way tasks.org does: default DAV namespace, relative hrefs.

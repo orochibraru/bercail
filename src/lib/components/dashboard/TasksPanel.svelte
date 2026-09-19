@@ -8,22 +8,26 @@
 		type DateValue
 	} from '@internationalized/date';
 	import CalendarIcon from '@lucide/svelte/icons/calendar';
+	import CheckIcon from '@lucide/svelte/icons/check';
+	import CopyIcon from '@lucide/svelte/icons/copy';
 	import ListTodoIcon from '@lucide/svelte/icons/list-todo';
 	import PenBoxIcon from '@lucide/svelte/icons/pen-box';
 	import PlusIcon from '@lucide/svelte/icons/plus';
 	import TrashIcon from '@lucide/svelte/icons/trash';
-	import { tick } from 'svelte';
+	import Undo2Icon from '@lucide/svelte/icons/undo-2';
 	import { toast } from 'svelte-sonner';
 	import { invalidate } from '$app/navigation';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import { Calendar } from '#lib/components/ui/calendar/index.ts';
+	import * as ContextMenu from '#lib/components/ui/context-menu/index.ts';
 	import * as Dialog from '#lib/components/ui/dialog/index.ts';
 	import { Input } from '#lib/components/ui/input/index.ts';
+	import { Label } from '#lib/components/ui/label/index.ts';
 	import * as Popover from '#lib/components/ui/popover/index.ts';
 	import * as Select from '#lib/components/ui/select/index.ts';
 	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.ts';
 	import { DUE_PRESETS, presetDate, type DuePreset } from '#lib/due-presets.ts';
-	import { addTask, updateTask } from '#lib/remote/tasks.remote.ts';
+	import { addTask, completeTask, updateTask } from '#lib/remote/tasks.remote.ts';
 	import type { Task, TasksSnapshot } from '#lib/server/monitoring/caldav.ts';
 	import { deleteModalState } from '#lib/store/modals.ts';
 	import { cn } from '#lib/utils.ts';
@@ -34,6 +38,18 @@
 
 	let { snapshot }: Props = $props();
 	let { lists, tasks } = $derived(snapshot);
+
+	// Ticked off in this session: they keep their line, struck through, so a misclick can be undone.
+	let done = $state<{ task: Task; index: number }[]>([]);
+	let rows = $derived.by(() => {
+		const isDone = (task: Task) => done.some((entry) => entry.task.uid === task.uid);
+		const result = tasks.filter((task) => !isDone(task)).map((task) => ({ task, done: false }));
+		for (const entry of done.toSorted((a, b) => a.index - b.index)) {
+			result.splice(entry.index, 0, { task: entry.task, done: true });
+		}
+		return result;
+	});
+	let openCount = $derived(rows.filter((row) => !row.done).length);
 
 	let adding = $state(false);
 	let saving = $state(false);
@@ -77,7 +93,6 @@
 	]);
 
 	let listItems = $derived(lists.map((list) => ({ value: list.url, label: list.name })));
-	let titleInput: HTMLInputElement | null = $state(null);
 
 	let editing = $state<Task | null>(null);
 
@@ -107,8 +122,6 @@
 				priority: priorityBucket(task.priority)
 			};
 		}
-		await tick();
-		titleInput?.focus();
 	}
 
 	function closeForm() {
@@ -119,6 +132,37 @@
 	function confirmDelete(task: Task) {
 		allOpen = false;
 		deleteModalState.set({ open: true, type: 'task', id: task.uid, name: task.title });
+	}
+
+	const errorMessage = (error: unknown) => (error as { body?: { message?: string } }).body?.message;
+
+	async function setDone(task: Task, value: boolean) {
+		const forget = () => (done = done.filter((entry) => entry.task.uid !== task.uid));
+		if (value) {
+			done = [...done, { task, index: rows.findIndex((row) => row.task.uid === task.uid) }];
+		}
+		try {
+			await completeTask({ uid: task.uid, done: value });
+			await invalidate('app:monitoring');
+			// Only now: the reopened task is back in the snapshot, so its line doesn't blink.
+			if (!value) forget();
+		} catch (error) {
+			if (value) forget();
+			toast.error(errorMessage(error) ?? `Failed to ${value ? 'complete' : 'reopen'} the task`);
+			await invalidate('app:monitoring');
+		}
+	}
+
+	async function duplicate(task: Task) {
+		// ponytail: lists are matched by name; carry the list URL on Task if two lists share a name.
+		const listUrl = lists.find((list) => list.name === task.list)?.url ?? '';
+		try {
+			await addTask({ listUrl, title: task.title, due: task.due, priority: task.priority });
+			toast.success('Task duplicated');
+		} catch (error) {
+			toast.error(errorMessage(error) ?? 'Failed to duplicate the task');
+		}
+		await invalidate('app:monitoring');
 	}
 
 	function dueValue(): string | null {
@@ -146,13 +190,11 @@
 			} else {
 				await addTask({ listUrl: draft.listUrl, ...task });
 				toast.success('Task added');
-				draft = { ...emptyDraft, listUrl: draft.listUrl };
-				titleInput?.focus();
+				closeForm();
 			}
 			await invalidate('app:monitoring');
 		} catch (error) {
-			const message = (error as { body?: { message?: string } }).body?.message;
-			toast.error(message ?? `Failed to ${editing ? 'save' : 'add'} the task`);
+			toast.error(errorMessage(error) ?? `Failed to ${editing ? 'save' : 'add'} the task`);
 			await invalidate('app:monitoring');
 		} finally {
 			saving = false;
@@ -208,41 +250,111 @@
 	></span>
 {/snippet}
 
-{#snippet taskList(items: Task[])}
+{#snippet taskList(items: typeof rows)}
 	<ul class="mt-3 flex flex-col">
-		{#each items as task (task.uid)}
+		{#each items as { task, done: isDone } (task.uid)}
 			{@const due = task.due ? dueLabel(task.due) : null}
-			<li class="border-border flex items-center gap-3 border-b py-1.5 last:border-b-0">
-				{@render priorityRing(task.priority)}
-				<span class="text-foreground min-w-0 flex-1 truncate text-sm" title={task.title}
-					>{task.title}</span
-				>
-				<span class="text-muted-foreground hidden flex-none text-xs sm:inline">{task.list}</span>
-				<span
-					class={cn(
-						'w-28 flex-none text-right text-xs whitespace-nowrap',
-						due?.overdue ? 'font-semibold text-red-600 dark:text-red-400' : 'text-muted-foreground'
-					)}>{due?.text}</span
-				>
-				<div class="flex flex-none gap-1">
-					<button
-						onclick={() => openForm(task)}
-						title="Edit task"
-						aria-label="Edit {task.title}"
-						class="text-muted-foreground hover:bg-muted hover:text-foreground flex size-[22px] cursor-pointer items-center justify-center rounded"
-					>
-						<PenBoxIcon class="size-3" />
-					</button>
-					<button
+			<ContextMenu.Root>
+				<ContextMenu.Trigger>
+					{#snippet child({ props })}
+						<li
+							{...props}
+							class="border-border flex items-center gap-3 border-b py-1 last:border-b-0"
+						>
+							<button
+								onclick={() => setDone(task, !isDone)}
+								title={isDone ? 'Mark as not done' : 'Mark as done'}
+								aria-label="{isDone ? 'Mark as not done' : 'Mark as done'}: {task.title}"
+								aria-pressed={isDone}
+								class="group -m-1 flex flex-none cursor-pointer items-center justify-center rounded-full p-1"
+							>
+								<span
+									class={cn(
+										'flex size-4 items-center justify-center rounded-full border-2',
+										priorityClass(task.priority, isDone)
+									)}
+								>
+									<CheckIcon
+										class={cn(
+											'size-2.5 stroke-[4] text-white',
+											!isDone &&
+												'group-hover:text-muted-foreground opacity-0 group-hover:opacity-100'
+										)}
+									/>
+								</span>
+							</button>
+							<span
+								class={cn(
+									'min-w-0 flex-1 truncate text-sm',
+									isDone ? 'text-muted-foreground line-through' : 'text-foreground'
+								)}
+								title={task.title}>{task.title}</span
+							>
+							<span class="text-muted-foreground hidden flex-none text-xs sm:inline"
+								>{task.list}</span
+							>
+							<span
+								class={cn(
+									'w-28 flex-none text-right text-xs whitespace-nowrap',
+									due?.overdue && !isDone
+										? 'font-semibold text-red-600 dark:text-red-400'
+										: 'text-muted-foreground'
+								)}>{due?.text}</span
+							>
+							<div class="flex w-20 flex-none justify-end gap-1">
+								{#if isDone}
+									<Button
+										variant="ghost"
+										size="sm"
+										class="h-7"
+										onclick={() => setDone(task, false)}
+									>
+										<Undo2Icon />
+										Cancel
+									</Button>
+								{:else}
+									<button
+										onclick={() => openForm(task)}
+										title="Edit task"
+										aria-label="Edit {task.title}"
+										class="text-muted-foreground hover:bg-muted hover:text-foreground flex size-7 cursor-pointer items-center justify-center rounded"
+									>
+										<PenBoxIcon class="size-4" />
+									</button>
+									<button
+										onclick={() => confirmDelete(task)}
+										title="Delete task"
+										aria-label="Delete {task.title}"
+										class="hover:bg-muted flex size-7 cursor-pointer items-center justify-center rounded text-red-600 dark:text-red-500"
+									>
+										<TrashIcon class="size-4" />
+									</button>
+								{/if}
+							</div>
+						</li>
+					{/snippet}
+				</ContextMenu.Trigger>
+				<ContextMenu.Content>
+					<ContextMenu.Item onclick={() => setDone(task, !isDone)} class="cursor-pointer text-xs">
+						{#if isDone}<Undo2Icon />Mark as not done{:else}<CheckIcon />Mark as done{/if}
+					</ContextMenu.Item>
+					<ContextMenu.Item onclick={() => openForm(task)} class="cursor-pointer text-xs">
+						<PenBoxIcon />
+						Edit
+					</ContextMenu.Item>
+					<ContextMenu.Item onclick={() => duplicate(task)} class="cursor-pointer text-xs">
+						<CopyIcon />
+						Duplicate
+					</ContextMenu.Item>
+					<ContextMenu.Item
 						onclick={() => confirmDelete(task)}
-						title="Delete task"
-						aria-label="Delete {task.title}"
-						class="hover:bg-muted flex size-[22px] cursor-pointer items-center justify-center rounded text-red-600 dark:text-red-500"
+						class="cursor-pointer text-xs text-red-600 dark:text-red-500"
 					>
-						<TrashIcon class="size-3" />
-					</button>
-				</div>
-			</li>
+						<TrashIcon />
+						Delete
+					</ContextMenu.Item>
+				</ContextMenu.Content>
+			</ContextMenu.Root>
 		{/each}
 	</ul>
 {/snippet}
@@ -251,11 +363,134 @@
 	<Dialog.Content class="sm:max-w-2xl">
 		<Dialog.Header>
 			<Dialog.Title>All tasks</Dialog.Title>
-			<Dialog.Description>{tasks.length} open</Dialog.Description>
+			<Dialog.Description>{openCount} open</Dialog.Description>
 		</Dialog.Header>
 		<div class="-mx-6 max-h-[70vh] overflow-y-auto px-6">
-			{@render taskList(tasks)}
+			{@render taskList(rows)}
 		</div>
+	</Dialog.Content>
+</Dialog.Root>
+
+<Dialog.Root bind:open={() => adding, (open) => !open && closeForm()}>
+	<Dialog.Content>
+		<Dialog.Header>
+			<Dialog.Title>{editing ? 'Edit task' : 'New task'}</Dialog.Title>
+		</Dialog.Header>
+		<form class="grid gap-4" onsubmit={submit}>
+			<div class="grid gap-2">
+				<Label for="task-title">Title</Label>
+				<Input
+					id="task-title"
+					bind:value={draft.title}
+					placeholder="What needs doing?"
+					maxlength={500}
+					required
+				/>
+			</div>
+			<div class="grid gap-2">
+				<Label>Due</Label>
+				<div class="flex flex-wrap gap-2">
+					<Select.Root type="single" items={whenItems} bind:value={draft.when}>
+						<Select.Trigger aria-label="Due" class="w-40">
+							{whenItems.find((item) => item.value === draft.when)?.label}
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Group>
+								{#each whenItems as item (item.value)}
+									<Select.Item value={item.value} label={item.label}>
+										{item.label}
+										{#if item.hint}
+											<span class="text-muted-foreground ml-auto text-xs">{item.hint}</span>
+										{/if}
+									</Select.Item>
+								{/each}
+							</Select.Group>
+						</Select.Content>
+					</Select.Root>
+					{#if draft.when === 'custom'}
+						<Popover.Root bind:open={dueOpen}>
+							<Popover.Trigger>
+								{#snippet child({ props })}
+									<Button
+										{...props}
+										variant="outline"
+										class={cn(
+											'w-40 justify-start font-normal',
+											!draft.due && 'text-muted-foreground'
+										)}
+									>
+										<CalendarIcon data-icon="inline-start" />
+										{draft.due
+											? draft.due.toDate(getLocalTimeZone()).toLocaleDateString([], {
+													weekday: 'short',
+													day: 'numeric',
+													month: 'short'
+												})
+											: 'Due date'}
+									</Button>
+								{/snippet}
+							</Popover.Trigger>
+							<Popover.Content class="w-auto p-0" align="start">
+								<Calendar
+									type="single"
+									bind:value={draft.due}
+									minValue={editing ? undefined : today(getLocalTimeZone())}
+									onValueChange={() => (dueOpen = false)}
+								/>
+							</Popover.Content>
+						</Popover.Root>
+						<Input
+							bind:value={draft.time}
+							type="time"
+							aria-label="Due time"
+							disabled={!draft.due}
+							class="w-28"
+						/>
+					{/if}
+				</div>
+			</div>
+			<div class="grid gap-2">
+				<Label>Priority</Label>
+				<ToggleGroup.Root
+					type="single"
+					variant="outline"
+					bind:value={draft.priority}
+					aria-label="Priority"
+					class="justify-start"
+				>
+					{#each priorities as priority (priority.value)}
+						<ToggleGroup.Item
+							value={priority.value}
+							aria-label={priority.label}
+							title={priority.label}
+						>
+							{@render priorityRing(Number(priority.value), draft.priority === priority.value)}
+						</ToggleGroup.Item>
+					{/each}
+				</ToggleGroup.Root>
+			</div>
+			{#if !editing}
+				<div class="grid gap-2">
+					<Label>List</Label>
+					<Select.Root type="single" items={listItems} bind:value={draft.listUrl}>
+						<Select.Trigger aria-label="List" class="w-full">
+							{listItems.find((item) => item.value === draft.listUrl)?.label ?? 'List'}
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Group>
+								{#each listItems as item (item.value)}
+									<Select.Item value={item.value} label={item.label}>{item.label}</Select.Item>
+								{/each}
+							</Select.Group>
+						</Select.Content>
+					</Select.Root>
+				</div>
+			{/if}
+			<Dialog.Footer>
+				<Button variant="ghost" onclick={closeForm}>Cancel</Button>
+				<Button type="submit" loading={saving}>{editing ? 'Save' : 'Add'}</Button>
+			</Dialog.Footer>
+		</form>
 	</Dialog.Content>
 </Dialog.Root>
 
@@ -263,8 +498,8 @@
 	<div class="flex items-center gap-3">
 		<ListTodoIcon class="text-primary size-9 flex-none" />
 		<span class="text-foreground text-lg font-bold">Tasks</span>
-		<span class="text-muted-foreground text-sm">{tasks.length} open</span>
-		{#if !adding && lists.length > 0}
+		<span class="text-muted-foreground text-sm">{openCount} open</span>
+		{#if lists.length > 0}
 			<Button
 				variant="ghost"
 				size="sm"
@@ -277,111 +512,13 @@
 			</Button>
 		{/if}
 	</div>
-	{#if adding}
-		<form class="mt-3 flex flex-wrap items-center gap-2" onsubmit={submit}>
-			<Input
-				bind:ref={titleInput}
-				bind:value={draft.title}
-				onkeydown={(event) => event.key === 'Escape' && closeForm()}
-				placeholder="New task"
-				aria-label="Task title"
-				maxlength={500}
-				required
-				class="min-w-48 flex-1"
-			/>
-			<Select.Root type="single" items={whenItems} bind:value={draft.when}>
-				<Select.Trigger aria-label="Due" class="w-40">
-					{whenItems.find((item) => item.value === draft.when)?.label}
-				</Select.Trigger>
-				<Select.Content>
-					<Select.Group>
-						{#each whenItems as item (item.value)}
-							<Select.Item value={item.value} label={item.label}>
-								{item.label}
-								{#if item.hint}
-									<span class="text-muted-foreground ml-auto text-xs">{item.hint}</span>
-								{/if}
-							</Select.Item>
-						{/each}
-					</Select.Group>
-				</Select.Content>
-			</Select.Root>
-			{#if draft.when === 'custom'}
-				<Popover.Root bind:open={dueOpen}>
-					<Popover.Trigger>
-						{#snippet child({ props })}
-							<Button
-								{...props}
-								variant="outline"
-								class={cn('w-40 justify-start font-normal', !draft.due && 'text-muted-foreground')}
-							>
-								<CalendarIcon data-icon="inline-start" />
-								{draft.due
-									? draft.due
-											.toDate(getLocalTimeZone())
-											.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })
-									: 'Due date'}
-							</Button>
-						{/snippet}
-					</Popover.Trigger>
-					<Popover.Content class="w-auto p-0" align="start">
-						<Calendar
-							type="single"
-							bind:value={draft.due}
-							minValue={editing ? undefined : today(getLocalTimeZone())}
-							onValueChange={() => (dueOpen = false)}
-						/>
-					</Popover.Content>
-				</Popover.Root>
-				<Input
-					bind:value={draft.time}
-					type="time"
-					aria-label="Due time"
-					disabled={!draft.due}
-					class="w-28"
-				/>
-			{/if}
-			<ToggleGroup.Root
-				type="single"
-				variant="outline"
-				bind:value={draft.priority}
-				aria-label="Priority"
-			>
-				{#each priorities as priority (priority.value)}
-					<ToggleGroup.Item
-						value={priority.value}
-						aria-label={priority.label}
-						title={priority.label}
-					>
-						{@render priorityRing(Number(priority.value), draft.priority === priority.value)}
-					</ToggleGroup.Item>
-				{/each}
-			</ToggleGroup.Root>
-			{#if !editing}
-				<Select.Root type="single" items={listItems} bind:value={draft.listUrl}>
-					<Select.Trigger aria-label="List" class="w-40">
-						{listItems.find((item) => item.value === draft.listUrl)?.label ?? 'List'}
-					</Select.Trigger>
-					<Select.Content>
-						<Select.Group>
-							{#each listItems as item (item.value)}
-								<Select.Item value={item.value} label={item.label}>{item.label}</Select.Item>
-							{/each}
-						</Select.Group>
-					</Select.Content>
-				</Select.Root>
-			{/if}
-			<Button type="submit" loading={saving}>{editing ? 'Save' : 'Add'}</Button>
-			<Button variant="ghost" onclick={closeForm}>Cancel</Button>
-		</form>
-	{/if}
-	{#if tasks.length === 0}
+	{#if rows.length === 0}
 		<p class="text-muted-foreground mt-3 text-sm">Nothing to do.</p>
 	{:else}
-		{@render taskList(tasks.slice(0, shown))}
-		{#if tasks.length > shown}
+		{@render taskList(rows.slice(0, shown))}
+		{#if rows.length > shown}
 			<Button variant="link" size="sm" class="mt-1 px-0" onclick={() => (allOpen = true)}>
-				and {tasks.length - shown} more
+				and {rows.length - shown} more
 			</Button>
 		{/if}
 	{/if}

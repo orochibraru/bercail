@@ -226,11 +226,49 @@ export function updateTaskIcs(
 	task: NewTask,
 	now = new Date(),
 ): string {
+	const stamp = icsTimestamp(now);
+	return rewriteTodo(ics, uid, REPLACED_PROPERTIES, [
+		...taskLines(task, stamp),
+		`LAST-MODIFIED:${stamp}`,
+	]);
+}
+
+const COMPLETION_PROPERTIES = new Set([
+	"DTSTAMP",
+	"LAST-MODIFIED",
+	"STATUS",
+	"COMPLETED",
+	"PERCENT-COMPLETE",
+]);
+
+/** Marks the task `uid` done, or open again, keeping every other property. */
+export function completeTaskIcs(
+	ics: string,
+	uid: string,
+	done: boolean,
+	now = new Date(),
+): string {
+	const stamp = icsTimestamp(now);
+	return rewriteTodo(ics, uid, COMPLETION_PROPERTIES, [
+		`DTSTAMP:${stamp}`,
+		`LAST-MODIFIED:${stamp}`,
+		...(done
+			? ["STATUS:COMPLETED", `COMPLETED:${stamp}`, "PERCENT-COMPLETE:100"]
+			: ["STATUS:NEEDS-ACTION"]),
+	]);
+}
+
+/** Drops the `replaced` properties of the task `uid` (not of its overrides or alarms) and appends `added`. */
+function rewriteTodo(
+	ics: string,
+	uid: string,
+	replaced: Set<string>,
+	added: string[],
+): string {
 	const lines = ics
 		.replace(/\r?\n[ \t]/g, "")
 		.split(/\r?\n/)
 		.filter(Boolean);
-	const stamp = icsTimestamp(now);
 	const output: string[] = [];
 	let block: string[] | null = null;
 
@@ -258,15 +296,13 @@ export function updateTaskIcs(
 			const kept = isTarget
 				? block.filter(
 						(blockLine, index) =>
-							!isOwn[index] || !REPLACED_PROPERTIES.has(name(blockLine)),
+							!isOwn[index] || !replaced.has(name(blockLine)),
 					)
 				: block;
 			output.push(
 				"BEGIN:VTODO",
 				...kept,
-				...(isTarget
-					? [...taskLines(task, stamp), `LAST-MODIFIED:${stamp}`]
-					: []),
+				...(isTarget ? added : []),
 				"END:VTODO",
 			);
 			block = null;
@@ -368,6 +404,22 @@ export class CalDavClient {
 		this.cache = null;
 	}
 
+	async completeTask(uid: string, done: boolean) {
+		const resource = await this.resource(uid);
+		await this.request(
+			resource.url,
+			"PUT",
+			completeTaskIcs(resource.ics, uid, done),
+			{
+				"Content-Type": "text/calendar; charset=utf-8",
+				...this.ifMatch(resource),
+			},
+		);
+		// Its etag changed: read it again before an undo.
+		this.resources.delete(uid);
+		this.cache = null;
+	}
+
 	async deleteTask(uid: string) {
 		const resource = await this.resource(uid);
 		await this.request(resource.url, "DELETE", "", this.ifMatch(resource));
@@ -448,8 +500,9 @@ export class CalDavClient {
 				etag: unescapeXml(xmlTag(response, "getetag").trim()),
 				ics,
 			};
-			for (const task of tasks) {
-				resources.set(task.uid, resource);
+			// Done tasks too, so a completion can be undone.
+			for (const [, uid] of ics.matchAll(/^UID:(.+?)\r?$/gm)) {
+				resources.set(uid, resource);
 			}
 			return tasks;
 		});
