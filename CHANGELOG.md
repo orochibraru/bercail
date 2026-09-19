@@ -1,3 +1,9 @@
+## [1.0.5](https://github.com/orochibraru/bercail/compare/v1.0.4...v1.0.5) (2026-09-19)
+
+### Features
+
+* crud caldav ([9713ca4](https://github.com/orochibraru/bercail/commit/9713ca4accbae5f07e78d9077df231108997b167))
+
 ## [1.0.4](https://github.com/orochibraru/bercail/compare/v1.0.3...v1.0.4) (2026-09-19)
 
 ### Features
