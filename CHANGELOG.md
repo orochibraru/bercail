@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.9](https://github.com/orochibraru/bercail/compare/v1.0.8...v1.0.9) (2026-09-19)
+
+### Bug Fixes
+
+* responsive design for the ci panel ([b6195b9](https://github.com/orochibraru/bercail/commit/b6195b9de3234cb3185f61e4f2f001083cc3006c))
+
 ## [1.0.8](https://github.com/orochibraru/bercail/compare/v1.0.7...v1.0.8) (2026-09-19)
 
 ### Features
