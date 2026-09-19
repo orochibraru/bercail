@@ -5,6 +5,7 @@
 	import { invalidate, refreshAll } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import { reorderGroups, reorderItems } from '#lib/remote/dashboard.remote.ts';
+	import RefreshButton from '#lib/components/dashboard/RefreshButton.svelte';
 	import SystemStatsPanel from '#lib/components/dashboard/SystemStatsPanel.svelte';
 	import SystemStatsPanelSkeleton from '#lib/components/dashboard/SystemStatsPanelSkeleton.svelte';
 	import TasksPanel from '#lib/components/dashboard/TasksPanel.svelte';
@@ -19,7 +20,7 @@
 	import { formatUptime } from '#lib/helpers.ts';
 	import type { Group, Item } from '#lib/model.ts';
 	import type { WeatherData } from '#lib/server/monitoring/weather/weather-types.ts';
-	import type { Task } from '#lib/server/monitoring/caldav.ts';
+	import type { TasksSnapshot } from '#lib/server/monitoring/caldav.ts';
 	import type { UmamiWebsiteStats } from '#lib/server/monitoring/umami.ts';
 	import type { MetricReading } from '#lib/server/monitoring/system/system-stats-types.ts';
 
@@ -115,7 +116,7 @@
 
 	// Kept across refreshes so the panel doesn't flicker; stays null (hidden) when Umami is off or failing.
 	let analytics: UmamiWebsiteStats[] | null = $state(null);
-	let tasks: Task[] | null = $state(null);
+	let tasks: TasksSnapshot | null = $state(null);
 
 	let linkStatuses: Record<string, boolean> | undefined = $state();
 
@@ -155,6 +156,7 @@
 <main class="flex flex-col gap-4.5">
 	<div class="flex flex-col gap-2.5">
 		{#if weather.data}
+			<RefreshButton section="weather" label="Weather" />
 			<WeatherPanel weather={weather.data.snapshot} locationConfigured={weather.data.configured} />
 		{:else}
 			{#await data.weather}
@@ -173,13 +175,16 @@
 			{/await}
 		{/if}
 		{#if analytics}
+			<RefreshButton section="analytics" label="Analytics" />
 			<UmamiPanel websites={analytics} />
 		{/if}
 		{#if tasks}
-			<TasksPanel {tasks} />
+			<RefreshButton section="tasks" label="Tasks" />
+			<TasksPanel snapshot={tasks} />
 		{/if}
 	</div>
 
+	<RefreshButton section="links" label="Links" />
 	<div
 		class="flex flex-col gap-4.5"
 		use:dragHandleZone={{

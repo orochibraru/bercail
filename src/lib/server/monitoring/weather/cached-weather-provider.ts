@@ -19,6 +19,10 @@ export abstract class CachedWeatherProvider implements WeatherProvider {
 
 	protected abstract fetchSnapshot(): Promise<WeatherSnapshot>;
 
+	clearCache() {
+		this.cache = null;
+	}
+
 	async getSnapshot(): Promise<WeatherSnapshot> {
 		const now = Date.now();
 		if (this.cache && this.cache.expiresAt > now) {

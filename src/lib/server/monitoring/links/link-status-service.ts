@@ -15,6 +15,10 @@ export class LinkStatusService {
 		private readonly fetcher: Fetcher = fetch,
 	) {}
 
+	clearCache() {
+		this.cache.clear();
+	}
+
 	async getStatuses(urls: string[]): Promise<Record<string, boolean>> {
 		const uniqueUrls = [...new Set(urls)];
 		const results = await Promise.all(

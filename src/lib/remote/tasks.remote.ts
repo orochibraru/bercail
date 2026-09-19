@@ -1,6 +1,7 @@
 import { error } from "@sveltejs/kit";
 import { z } from "zod";
 import { CalDavClient } from "#lib/server/monitoring/caldav.ts";
+import { monitoringService } from "#lib/server/monitoring/index.ts";
 import {
 	CalDavSettings,
 	calDavConfigSchema,
@@ -36,7 +37,7 @@ export const saveTasksSettings = command(
 		}
 
 		try {
-			await new CalDavClient(parsed.data, 0).getTasks();
+			await new CalDavClient(parsed.data, 0).getSnapshot();
 		} catch (cause) {
 			console.error("CalDAV connection test failed:", cause);
 			error(400, "Couldn't read tasks with this URL, username and password");
@@ -48,3 +49,20 @@ export const saveTasksSettings = command(
 export const clearTasksSettings = command(() => {
 	calDavSettings.clear();
 });
+
+export const addTask = command(
+	z.object({
+		listUrl: z.string(),
+		title: z.string().trim().min(1).max(500),
+		due: z.union([z.iso.date(), z.iso.datetime()]).nullable(),
+		priority: z.number().int().min(0).max(9),
+	}),
+	async ({ listUrl, ...task }) => {
+		try {
+			await monitoringService.addTask(listUrl, task);
+		} catch (cause) {
+			console.error("Adding a task failed:", cause);
+			error(502, "Couldn't add the task");
+		}
+	},
+);

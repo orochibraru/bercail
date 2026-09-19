@@ -3,7 +3,7 @@ import { CalDavSettings } from "#lib/server/settings/caldav-settings.ts";
 import { UmamiSettings } from "#lib/server/settings/umami-settings.ts";
 import { WeatherLocationSettings } from "#lib/server/settings/weather-location-settings.ts";
 import { dev } from "$app/env";
-import { CalDavClient, type Task } from "./caldav";
+import { CalDavClient, type NewTask, type TasksSnapshot } from "./caldav";
 import { LinkStatusService } from "./links/link-status-service";
 import { MonitoringConfig } from "./monitoring-config";
 import { SystemStatsService } from "./system/system-stats-service";
@@ -11,6 +11,14 @@ import type { MetricReading } from "./system/system-stats-types";
 import { UmamiClient, type UmamiWebsiteStats } from "./umami";
 import { OpenMeteoWeatherProvider } from "./weather/open-meteo-weather-provider";
 import type { WeatherSnapshot } from "./weather/weather-types";
+
+export const CACHED_SECTIONS = [
+	"weather",
+	"analytics",
+	"tasks",
+	"links",
+] as const;
+export type CachedSection = (typeof CACHED_SECTIONS)[number];
 
 export interface DashboardSnapshot {
 	system: MetricReading[];
@@ -92,7 +100,36 @@ export class MonitoringService {
 	}
 
 	/** Null when no CalDAV account is connected, so the panel stays hidden. */
-	async getTasksSnapshot(): Promise<Task[] | null> {
+	async getTasksSnapshot(): Promise<TasksSnapshot | null> {
+		return this.calDavClient()?.getSnapshot() ?? null;
+	}
+
+	async addTask(listUrl: string, task: NewTask) {
+		const client = this.calDavClient();
+		if (!client) {
+			throw new Error("Tasks aren't connected");
+		}
+		await client.addTask(listUrl, task);
+	}
+
+	clearCache(section: CachedSection) {
+		switch (section) {
+			case "weather":
+				this.resolveWeatherProvider()?.clearCache();
+				break;
+			case "analytics":
+				this.umami?.clearCache();
+				break;
+			case "tasks":
+				this.calDav?.clearCache();
+				break;
+			case "links":
+				this.linkStatus.clearCache();
+				break;
+		}
+	}
+
+	private calDavClient(): CalDavClient | null {
 		const config = this.calDavSettings.get();
 		if (!config) {
 			return null;
@@ -102,7 +139,7 @@ export class MonitoringService {
 			this.calDav = new CalDavClient(config, dev ? 0 : undefined);
 			this.calDavKey = key;
 		}
-		return this.calDav.getTasks();
+		return this.calDav;
 	}
 
 	getUptimeSnapshot(): number {

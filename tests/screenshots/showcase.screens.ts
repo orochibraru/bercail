@@ -124,6 +124,50 @@ test("showcase", async ({ page }) => {
 	await page.waitForLoadState("networkidle");
 	await shoot(page, "dashboard", true);
 
+	// Not in any screenshot: checks that adding a task reaches the server and shows up.
+	await page.getByRole("button", { name: "Add task" }).click();
+	await page.getByLabel("Task title").fill("Rotate the backup drives");
+	await page.getByLabel("Due", { exact: true }).click();
+	await page.getByRole("option", { name: "Custom" }).click();
+	await page.getByRole("button", { name: "Due date" }).click();
+	await page.locator("[data-bits-day][data-today]").click();
+	await expect(page.getByRole("button", { name: "Due date" })).toBeHidden();
+	await page.getByLabel("Due time").fill("23:30");
+	await page.getByRole("radio", { name: "High priority" }).click();
+	await page.getByLabel("List").click();
+	await page.getByRole("option", { name: "Home", exact: true }).click();
+	await page.getByRole("button", { name: "Add", exact: true }).click();
+	await expect(page.getByText("Task added")).toBeVisible();
+
+	await page.getByLabel("Task title").fill("Water the plants");
+	await page.getByLabel("Due", { exact: true }).click();
+	await page.getByRole("option", { name: /^Tomorrow at 9/ }).click();
+	await page.getByRole("button", { name: "Add", exact: true }).click();
+	await expect(page.getByText("Task added")).toHaveCount(2);
+	await page.getByRole("button", { name: "Cancel" }).click();
+
+	await page.getByRole("button", { name: /^and \d+ more$/ }).click();
+	const allTasks = page.getByRole("dialog");
+	const added = allTasks
+		.getByRole("listitem")
+		.filter({ hasText: "Rotate the backup drives" });
+	await expect(added).toContainText("Home");
+	await expect(added).toContainText("Today 11:30 PM");
+	await expect(added.locator(".border-red-500")).toHaveCount(1);
+	await expect(
+		allTasks.getByRole("listitem").filter({ hasText: "Water the plants" }),
+	).toContainText("Tomorrow 9:00 AM");
+	await expect(allTasks.getByRole("listitem")).toHaveCount(11);
+	await page.keyboard.press("Escape");
+
+	await page.getByRole("button", { name: "Refresh tasks" }).click();
+	await expect(
+		page.getByRole("button", { name: "Refresh tasks" }),
+	).toBeEnabled();
+	await expect(page.getByText("Failed to refresh")).toHaveCount(0);
+	await page.reload();
+	await page.waitForLoadState("networkidle");
+
 	await page.keyboard.press("ControlOrMeta+k");
 	await page.getByPlaceholder("Type a command or search...").fill("ra");
 	await shoot(page, "search");

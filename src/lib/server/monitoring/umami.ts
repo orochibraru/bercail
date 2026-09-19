@@ -43,6 +43,10 @@ export class UmamiClient {
 		);
 	}
 
+	clearCache() {
+		this.cache = null;
+	}
+
 	/** Cached for ttlMs, and serves the last good result when Umami is unreachable. */
 	async getStats(): Promise<UmamiWebsiteStats[]> {
 		const now = Date.now();

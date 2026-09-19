@@ -10,9 +10,14 @@ export interface Task {
 	priority: number;
 }
 
-interface TaskList {
+export interface TaskList {
 	name: string;
 	url: string;
+}
+
+export interface TasksSnapshot {
+	lists: TaskList[];
+	tasks: Task[];
 }
 
 /** Text of the first <tag> (any namespace prefix) in xml, or "". */
@@ -117,6 +122,69 @@ export function parseTasks(
 	return tasks;
 }
 
+function escapeIcsText(text: string): string {
+	return text.replace(/[\\;,]/g, "\\$&").replace(/\r?\n/g, "\\n");
+}
+
+/** Splits a content line into 75-octet pieces, as RFC 5545 requires, without cutting a character. */
+function foldIcsLine(line: string): string {
+	const encoder = new TextEncoder();
+	let folded = "";
+	let octets = 0;
+	for (const char of line) {
+		const size = encoder.encode(char).length;
+		if (octets + size > 75) {
+			folded += "\r\n ";
+			octets = 1;
+		}
+		folded += char;
+		octets += size;
+	}
+	return folded;
+}
+
+export interface NewTask {
+	title: string;
+	/** "2026-09-18" for all day, a full ISO timestamp for a set time. */
+	due: string | null;
+	priority: number;
+}
+
+function icsTimestamp(date: Date): string {
+	return date.toISOString().replace(/[-:]|\.\d+/g, "");
+}
+
+function icsDue(due: string): string {
+	return due.length === 10
+		? `DUE;VALUE=DATE:${due.replaceAll("-", "")}`
+		: `DUE:${icsTimestamp(new Date(due))}`;
+}
+
+export function buildTaskIcs(
+	uid: string,
+	task: NewTask,
+	now = new Date(),
+): string {
+	const stamp = icsTimestamp(now);
+	return `${[
+		"BEGIN:VCALENDAR",
+		"VERSION:2.0",
+		"PRODID:-//Bercail//EN",
+		"BEGIN:VTODO",
+		`UID:${uid}`,
+		`DTSTAMP:${stamp}`,
+		`CREATED:${stamp}`,
+		`SUMMARY:${escapeIcsText(task.title)}`,
+		...(task.due ? [icsDue(task.due)] : []),
+		...(task.priority ? [`PRIORITY:${task.priority}`] : []),
+		"STATUS:NEEDS-ACTION",
+		"END:VTODO",
+		"END:VCALENDAR",
+	]
+		.map(foldIcsLine)
+		.join("\r\n")}\r\n`;
+}
+
 /** Due first (soonest first, undated last), then by priority, then by title. */
 export function sortTasks(tasks: Task[]): Task[] {
 	const rank = (priority: number) => (priority === 0 ? 10 : priority);
@@ -130,9 +198,9 @@ export function sortTasks(tasks: Task[]): Task[] {
 	);
 }
 
-/** Reads open tasks from a CalDAV server (tasks.org, Nextcloud, Radicale, ...). */
+/** Reads open tasks from a CalDAV server (tasks.org, Nextcloud, Radicale, ...) and adds new ones. */
 export class CalDavClient {
-	private cache: { tasks: Task[]; expiresAt: number } | null = null;
+	private cache: { snapshot: TasksSnapshot; expiresAt: number } | null = null;
 	private lists: TaskList[] | null = null;
 
 	constructor(
@@ -141,27 +209,52 @@ export class CalDavClient {
 	) {}
 
 	/** Cached for ttlMs, and serves the last good result when the server is unreachable. */
-	async getTasks(): Promise<Task[]> {
+	async getSnapshot(): Promise<TasksSnapshot> {
 		const now = Date.now();
 		if (this.cache && this.cache.expiresAt > now) {
-			return this.cache.tasks;
+			return this.cache.snapshot;
 		}
 		try {
 			this.lists ??= await this.discoverLists();
+			const lists = this.lists;
 			const perList = await Promise.all(
-				this.lists.map((list) => this.fetchTasks(list)),
+				lists.map((list) => this.fetchTasks(list)),
 			);
-			const tasks = sortTasks(perList.flat());
-			this.cache = { tasks, expiresAt: now + this.ttlMs };
-			return tasks;
+			const snapshot = { lists, tasks: sortTasks(perList.flat()) };
+			this.cache = { snapshot, expiresAt: now + this.ttlMs };
+			return snapshot;
 		} catch (error) {
 			// Lists may have been added, renamed or moved; look them up again next time.
 			this.lists = null;
 			if (this.cache) {
-				return this.cache.tasks;
+				return this.cache.snapshot;
 			}
 			throw error;
 		}
+	}
+
+	clearCache() {
+		this.cache = null;
+		this.lists = null;
+	}
+
+	async addTask(listUrl: string, task: NewTask) {
+		this.lists ??= await this.discoverLists();
+		// Only a discovered list: the credentials must never be sent to a URL the page made up.
+		const list = this.lists.find((candidate) => candidate.url === listUrl);
+		if (!list) {
+			throw new Error(`Unknown task list ${listUrl}`);
+		}
+		const uid = crypto.randomUUID();
+		const collection = list.url.endsWith("/") ? list.url : `${list.url}/`;
+		await this.request(
+			new URL(`${uid}.ics`, collection).toString(),
+			"PUT",
+			buildTaskIcs(uid, task),
+			// Never overwrite an existing task.
+			{ "Content-Type": "text/calendar; charset=utf-8", "If-None-Match": "*" },
+		);
+		this.cache = null;
 	}
 
 	/** Principal -> calendar home -> the collections that hold tasks. */
@@ -204,11 +297,11 @@ export class CalDavClient {
 		const xml = await this.request(
 			list.url,
 			"REPORT",
-			1,
 			`<c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
 				<d:prop><c:calendar-data/></d:prop>
 				<c:filter><c:comp-filter name="VCALENDAR"><c:comp-filter name="VTODO"/></c:comp-filter></c:filter>
 			</c:calendar-query>`,
+			{ Depth: "1" },
 		);
 		return xmlResponses(xml).flatMap((response) =>
 			parseTasks(unescapeXml(xmlTag(response, "calendar-data")), list.name),
@@ -219,8 +312,8 @@ export class CalDavClient {
 		return this.request(
 			url,
 			"PROPFIND",
-			depth,
 			`<d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop>${props}</d:prop></d:propfind>`,
+			{ Depth: String(depth) },
 		);
 	}
 
@@ -234,15 +327,15 @@ export class CalDavClient {
 	private async request(
 		url: string,
 		method: string,
-		depth: 0 | 1,
 		body: string,
+		headers: Record<string, string>,
 	): Promise<string> {
 		const response = await fetch(url, {
 			method,
 			headers: {
 				Authorization: `Basic ${Buffer.from(`${this.config.username}:${this.config.password}`).toString("base64")}`,
-				Depth: String(depth),
 				"Content-Type": "application/xml; charset=utf-8",
+				...headers,
 			},
 			body,
 			signal: AbortSignal.timeout(10_000),

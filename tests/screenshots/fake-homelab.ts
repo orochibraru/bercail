@@ -31,10 +31,12 @@ const lists: Record<string, [string, string | null, number][]> = {
 		["Test restoring a Vaultwarden backup", icsDate(1), 1],
 		["Update Proxmox to the new release", icsDate(3, 20), 5],
 		["Label the cables in the rack", null, 9],
+		["Try out a new dashboard theme", null, 9],
 	],
 	Home: [
 		["Take the bins out", icsDate(0, 20), 0],
 		["Book the boiler service", icsDate(9), 0],
+		["Fix the garden gate", null, 0],
 	],
 };
 
@@ -45,7 +47,17 @@ function multistatus(responses: string[]): Response {
 	);
 }
 
-function calDav(request: Request, path: string): Response {
+async function calDav(request: Request, path: string): Promise<Response> {
+	if (request.method === "PUT") {
+		const ics = await request.text();
+		const name = decodeURIComponent(path.split("/")[3]);
+		lists[name]?.push([
+			ics.match(/^SUMMARY:(.*)$/m)?.[1] ?? "",
+			ics.match(/^DUE(.*)$/m)?.[1] ?? null,
+			Number(ics.match(/^PRIORITY:(\d)/m)?.[1] ?? 0),
+		]);
+		return new Response(null, { status: 201 });
+	}
 	if (request.method === "REPORT") {
 		const name = decodeURIComponent(path.split("/")[3]);
 		return multistatus(
