@@ -1,6 +1,6 @@
 import { error } from "@sveltejs/kit";
 import { z } from "zod";
-import { CalDavClient } from "#lib/server/monitoring/caldav.ts";
+import { CalDavClient, CalDavError } from "#lib/server/monitoring/caldav.ts";
 import { monitoringService } from "#lib/server/monitoring/index.ts";
 import {
 	CalDavSettings,
@@ -50,19 +50,40 @@ export const clearTasksSettings = command(() => {
 	calDavSettings.clear();
 });
 
-export const addTask = command(
-	z.object({
-		listUrl: z.string(),
-		title: z.string().trim().min(1).max(500),
-		due: z.union([z.iso.date(), z.iso.datetime()]).nullable(),
-		priority: z.number().int().min(0).max(9),
-	}),
-	async ({ listUrl, ...task }) => {
-		try {
-			await monitoringService.addTask(listUrl, task);
-		} catch (cause) {
-			console.error("Adding a task failed:", cause);
-			error(502, "Couldn't add the task");
+const taskSchema = z.object({
+	title: z.string().trim().min(1).max(500),
+	due: z.union([z.iso.date(), z.iso.datetime()]).nullable(),
+	priority: z.number().int().min(0).max(9),
+});
+
+async function writeTask(action: string, write: () => Promise<void>) {
+	try {
+		await write();
+	} catch (cause) {
+		console.error(`Couldn't ${action} the task:`, cause);
+		if (cause instanceof CalDavError && cause.status === 412) {
+			monitoringService.clearCache("tasks");
+			error(
+				409,
+				"This task changed on another device. The list is refreshed, try again",
+			);
 		}
-	},
+		error(502, `Couldn't ${action} the task`);
+	}
+}
+
+export const addTask = command(
+	taskSchema.extend({ listUrl: z.string() }),
+	({ listUrl, ...task }) =>
+		writeTask("add", () => monitoringService.addTask(listUrl, task)),
+);
+
+export const updateTask = command(
+	taskSchema.extend({ uid: z.string() }),
+	({ uid, ...task }) =>
+		writeTask("update", () => monitoringService.updateTask(uid, task)),
+);
+
+export const deleteTask = command(z.string(), (uid) =>
+	writeTask("delete", () => monitoringService.deleteTask(uid)),
 );

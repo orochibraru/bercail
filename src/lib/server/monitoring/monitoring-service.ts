@@ -105,11 +105,23 @@ export class MonitoringService {
 	}
 
 	async addTask(listUrl: string, task: NewTask) {
+		await this.connectedCalDavClient().addTask(listUrl, task);
+	}
+
+	async updateTask(uid: string, task: NewTask) {
+		await this.connectedCalDavClient().updateTask(uid, task);
+	}
+
+	async deleteTask(uid: string) {
+		await this.connectedCalDavClient().deleteTask(uid);
+	}
+
+	private connectedCalDavClient(): CalDavClient {
 		const client = this.calDavClient();
 		if (!client) {
 			throw new Error("Tasks aren't connected");
 		}
-		await client.addTask(listUrl, task);
+		return client;
 	}
 
 	clearCache(section: CachedSection) {

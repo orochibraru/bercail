@@ -15,6 +15,21 @@ export interface TaskList {
 	url: string;
 }
 
+interface TaskResource {
+	url: string;
+	etag: string;
+	ics: string;
+}
+
+export class CalDavError extends Error {
+	constructor(
+		message: string,
+		readonly status: number,
+	) {
+		super(message);
+	}
+}
+
 export interface TasksSnapshot {
 	lists: TaskList[];
 	tasks: Task[];
@@ -92,7 +107,9 @@ export function parseTasks(
 		} else if (line === "END:VTODO" && props) {
 			const status = props.get("STATUS");
 			const start = parseIcsDate(props.get("DTSTART") ?? "");
+			const isOverride = props.has("RECURRENCE-ID");
 			const done =
+				isOverride ||
 				props.has("COMPLETED") ||
 				status === "COMPLETED" ||
 				status === "CANCELLED";
@@ -160,29 +177,106 @@ function icsDue(due: string): string {
 		: `DUE:${icsTimestamp(new Date(due))}`;
 }
 
+function taskLines(task: NewTask, stamp: string): string[] {
+	return [
+		`DTSTAMP:${stamp}`,
+		`SUMMARY:${escapeIcsText(task.title)}`,
+		...(task.due ? [icsDue(task.due)] : []),
+		...(task.priority ? [`PRIORITY:${task.priority}`] : []),
+	];
+}
+
+function serializeIcs(lines: string[]): string {
+	return `${lines.map(foldIcsLine).join("\r\n")}\r\n`;
+}
+
 export function buildTaskIcs(
 	uid: string,
 	task: NewTask,
 	now = new Date(),
 ): string {
 	const stamp = icsTimestamp(now);
-	return `${[
+	return serializeIcs([
 		"BEGIN:VCALENDAR",
 		"VERSION:2.0",
 		"PRODID:-//Bercail//EN",
 		"BEGIN:VTODO",
 		`UID:${uid}`,
-		`DTSTAMP:${stamp}`,
 		`CREATED:${stamp}`,
-		`SUMMARY:${escapeIcsText(task.title)}`,
-		...(task.due ? [icsDue(task.due)] : []),
-		...(task.priority ? [`PRIORITY:${task.priority}`] : []),
+		...taskLines(task, stamp),
 		"STATUS:NEEDS-ACTION",
 		"END:VTODO",
 		"END:VCALENDAR",
-	]
-		.map(foldIcsLine)
-		.join("\r\n")}\r\n`;
+	]);
+}
+
+const REPLACED_PROPERTIES = new Set([
+	"DTSTAMP",
+	"LAST-MODIFIED",
+	"SUMMARY",
+	"DUE",
+	"DURATION",
+	"PRIORITY",
+]);
+
+/** Rewrites title, due date and priority of the task `uid`, keeping every other property. */
+export function updateTaskIcs(
+	ics: string,
+	uid: string,
+	task: NewTask,
+	now = new Date(),
+): string {
+	const lines = ics
+		.replace(/\r?\n[ \t]/g, "")
+		.split(/\r?\n/)
+		.filter(Boolean);
+	const stamp = icsTimestamp(now);
+	const output: string[] = [];
+	let block: string[] | null = null;
+
+	for (const line of lines) {
+		if (line === "BEGIN:VTODO") {
+			block = [];
+		} else if (line === "END:VTODO" && block) {
+			let depth = 0;
+			const isOwn = block.map((blockLine) => {
+				if (blockLine.startsWith("BEGIN:")) {
+					depth++;
+				}
+				const own = depth === 0;
+				if (blockLine.startsWith("END:")) {
+					depth--;
+				}
+				return own;
+			});
+			const own = block.filter((_, index) => isOwn[index]);
+			const name = (blockLine: string) =>
+				blockLine.slice(0, blockLine.search(/[;:]/)).toUpperCase();
+			const isTarget =
+				own.includes(`UID:${uid}`) &&
+				!own.some((ownLine) => name(ownLine) === "RECURRENCE-ID");
+			const kept = isTarget
+				? block.filter(
+						(blockLine, index) =>
+							!isOwn[index] || !REPLACED_PROPERTIES.has(name(blockLine)),
+					)
+				: block;
+			output.push(
+				"BEGIN:VTODO",
+				...kept,
+				...(isTarget
+					? [...taskLines(task, stamp), `LAST-MODIFIED:${stamp}`]
+					: []),
+				"END:VTODO",
+			);
+			block = null;
+		} else if (block) {
+			block.push(line);
+		} else {
+			output.push(line);
+		}
+	}
+	return serializeIcs(output);
 }
 
 /** Due first (soonest first, undated last), then by priority, then by title. */
@@ -202,6 +296,7 @@ export function sortTasks(tasks: Task[]): Task[] {
 export class CalDavClient {
 	private cache: { snapshot: TasksSnapshot; expiresAt: number } | null = null;
 	private lists: TaskList[] | null = null;
+	private resources = new Map<string, TaskResource>();
 
 	constructor(
 		private readonly config: CalDavConfig,
@@ -217,9 +312,11 @@ export class CalDavClient {
 		try {
 			this.lists ??= await this.discoverLists();
 			const lists = this.lists;
+			const resources = new Map<string, TaskResource>();
 			const perList = await Promise.all(
-				lists.map((list) => this.fetchTasks(list)),
+				lists.map((list) => this.fetchTasks(list, resources)),
 			);
+			this.resources = resources;
 			const snapshot = { lists, tasks: sortTasks(perList.flat()) };
 			this.cache = { snapshot, expiresAt: now + this.ttlMs };
 			return snapshot;
@@ -255,6 +352,43 @@ export class CalDavClient {
 			{ "Content-Type": "text/calendar; charset=utf-8", "If-None-Match": "*" },
 		);
 		this.cache = null;
+	}
+
+	async updateTask(uid: string, task: NewTask) {
+		const resource = await this.resource(uid);
+		await this.request(
+			resource.url,
+			"PUT",
+			updateTaskIcs(resource.ics, uid, task),
+			{
+				"Content-Type": "text/calendar; charset=utf-8",
+				...this.ifMatch(resource),
+			},
+		);
+		this.cache = null;
+	}
+
+	async deleteTask(uid: string) {
+		const resource = await this.resource(uid);
+		await this.request(resource.url, "DELETE", "", this.ifMatch(resource));
+		this.cache = null;
+	}
+
+	/** Only tasks read from the server: the page never picks the URL the credentials go to. */
+	private async resource(uid: string): Promise<TaskResource> {
+		if (!this.resources.has(uid)) {
+			this.cache = null;
+			await this.getSnapshot();
+		}
+		const resource = this.resources.get(uid);
+		if (!resource) {
+			throw new Error(`Unknown task ${uid}`);
+		}
+		return resource;
+	}
+
+	private ifMatch(resource: TaskResource): Record<string, string> {
+		return resource.etag ? { "If-Match": resource.etag } : {};
 	}
 
 	/** Principal -> calendar home -> the collections that hold tasks. */
@@ -293,19 +427,32 @@ export class CalDavClient {
 			}));
 	}
 
-	private async fetchTasks(list: TaskList): Promise<Task[]> {
+	private async fetchTasks(
+		list: TaskList,
+		resources: Map<string, TaskResource>,
+	): Promise<Task[]> {
 		const xml = await this.request(
 			list.url,
 			"REPORT",
 			`<c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
-				<d:prop><c:calendar-data/></d:prop>
+				<d:prop><d:getetag/><c:calendar-data/></d:prop>
 				<c:filter><c:comp-filter name="VCALENDAR"><c:comp-filter name="VTODO"/></c:comp-filter></c:filter>
 			</c:calendar-query>`,
 			{ Depth: "1" },
 		);
-		return xmlResponses(xml).flatMap((response) =>
-			parseTasks(unescapeXml(xmlTag(response, "calendar-data")), list.name),
-		);
+		return xmlResponses(xml).flatMap((response) => {
+			const ics = unescapeXml(xmlTag(response, "calendar-data"));
+			const tasks = parseTasks(ics, list.name);
+			const resource = {
+				url: this.href(xmlTag(response, "href")),
+				etag: unescapeXml(xmlTag(response, "getetag").trim()),
+				ics,
+			};
+			for (const task of tasks) {
+				resources.set(task.uid, resource);
+			}
+			return tasks;
+		});
 	}
 
 	private propfind(url: string, depth: 0 | 1, props: string) {
@@ -341,8 +488,9 @@ export class CalDavClient {
 			signal: AbortSignal.timeout(10_000),
 		});
 		if (!response.ok) {
-			throw new Error(
+			throw new CalDavError(
 				`CalDAV ${method} ${url} failed with status ${response.status}`,
+				response.status,
 			);
 		}
 		return response.text();

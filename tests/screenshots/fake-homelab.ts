@@ -24,7 +24,7 @@ function icsDate(days: number, hour?: number): string {
 	return `:${date.toISOString().replace(/[-:]|\.\d+/g, "")}`;
 }
 
-const lists: Record<string, [string, string | null, number][]> = {
+const seed: Record<string, [string, string | null, number][]> = {
 	Homelab: [
 		["Renew the domain", icsDate(-1), 1],
 		["Replace the UPS battery", icsDate(0, 18), 5],
@@ -40,29 +40,14 @@ const lists: Record<string, [string, string | null, number][]> = {
 	],
 };
 
-function multistatus(responses: string[]): Response {
-	return new Response(
-		`<?xml version="1.0"?><multistatus xmlns="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">${responses.join("")}</multistatus>`,
-		{ status: 207, headers: { "Content-Type": "application/xml" } },
-	);
-}
-
-async function calDav(request: Request, path: string): Promise<Response> {
-	if (request.method === "PUT") {
-		const ics = await request.text();
-		const name = decodeURIComponent(path.split("/")[3]);
-		lists[name]?.push([
-			ics.match(/^SUMMARY:(.*)$/m)?.[1] ?? "",
-			ics.match(/^DUE(.*)$/m)?.[1] ?? null,
-			Number(ics.match(/^PRIORITY:(\d)/m)?.[1] ?? 0),
-		]);
-		return new Response(null, { status: 201 });
-	}
-	if (request.method === "REPORT") {
-		const name = decodeURIComponent(path.split("/")[3]);
-		return multistatus(
-			(lists[name] ?? []).map(([title, due, priority], index) => {
-				const ics = [
+/** List name -> file name -> iCalendar text. */
+const lists = new Map(
+	Object.entries(seed).map(([name, tasks]) => [
+		name,
+		new Map(
+			tasks.map(([title, due, priority], index) => [
+				`${index}.ics`,
+				[
 					"BEGIN:VCALENDAR",
 					"BEGIN:VTODO",
 					`UID:${name}-${index}`,
@@ -71,14 +56,41 @@ async function calDav(request: Request, path: string): Promise<Response> {
 					`PRIORITY:${priority}`,
 					"END:VTODO",
 					"END:VCALENDAR",
-				].join("\r\n");
-				return `<response><href>${path}${index}.ics</href><propstat><prop><C:calendar-data>${ics}</C:calendar-data></prop></propstat></response>`;
-			}),
+				].join("\r\n"),
+			]),
+		),
+	]),
+);
+
+function multistatus(responses: string[]): Response {
+	return new Response(
+		`<?xml version="1.0"?><multistatus xmlns="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">${responses.join("")}</multistatus>`,
+		{ status: 207, headers: { "Content-Type": "application/xml" } },
+	);
+}
+
+async function calDav(request: Request, path: string): Promise<Response> {
+	const [, , , encodedList, file] = path.split("/");
+	const list = lists.get(decodeURIComponent(encodedList ?? ""));
+	if (request.method === "PUT" && list && file) {
+		list.set(file, await request.text());
+		return new Response(null, { status: 201 });
+	}
+	if (request.method === "DELETE" && list && file) {
+		list.delete(file);
+		return new Response(null, { status: 204 });
+	}
+	if (request.method === "REPORT" && list) {
+		return multistatus(
+			[...list].map(
+				([name, ics]) =>
+					`<response><href>${path}${name}</href><propstat><prop><getetag>"${Bun.hash(ics)}"</getetag><C:calendar-data>${ics.replaceAll("&", "&amp;").replaceAll("<", "&lt;")}</C:calendar-data></prop></propstat></response>`,
+			),
 		);
 	}
 	if (path === "/dav/calendars/") {
 		return multistatus(
-			Object.keys(lists).map(
+			[...lists.keys()].map(
 				(name) =>
 					`<response><href>/dav/calendars/${encodeURIComponent(name)}/</href><propstat><prop><resourcetype><collection/><C:calendar/></resourcetype><displayname>${name}</displayname><C:supported-calendar-component-set><C:comp name="VTODO"/></C:supported-calendar-component-set></prop></propstat></response>`,
 			),

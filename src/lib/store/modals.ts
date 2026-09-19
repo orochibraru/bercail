@@ -28,7 +28,7 @@ export const itemModalState = writable<ItemModalState>({
 
 export type DeleteModalState = {
 	open: boolean;
-	type: "group" | "item";
+	type: "group" | "item" | "task";
 	id: string;
 	name: string;
 };

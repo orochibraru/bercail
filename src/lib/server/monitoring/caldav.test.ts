@@ -1,5 +1,12 @@
 import { afterAll, expect, test } from "bun:test";
-import { buildTaskIcs, CalDavClient, parseTasks, sortTasks } from "./caldav";
+import {
+	buildTaskIcs,
+	CalDavClient,
+	CalDavError,
+	parseTasks,
+	sortTasks,
+	updateTaskIcs,
+} from "./caldav";
 
 const now = new Date("2026-09-18T12:00:00Z");
 
@@ -99,6 +106,43 @@ test("buildTaskIcs writes a timed due date in UTC and the priority", () => {
 	]);
 });
 
+test("updateTaskIcs rewrites only the task's own fields", () => {
+	const ics = [
+		"BEGIN:VCALENDAR",
+		vtodo(
+			"UID:x",
+			"SUMMARY:Old",
+			"DUE:20260920T090000Z",
+			"PRIORITY:1",
+			"RRULE:FREQ=WEEKLY",
+			"X-APPLE-SORT-ORDER:42",
+			"BEGIN:VALARM",
+			"SUMMARY:Old",
+			"END:VALARM",
+		),
+		vtodo("UID:x", "RECURRENCE-ID:20260927T090000Z", "SUMMARY:Old"),
+		"END:VCALENDAR",
+	].join("\r\n");
+
+	const updated = updateTaskIcs(
+		ics,
+		"x",
+		{ title: "New", due: null, priority: 9 },
+		now,
+	);
+	const [master, override] = updated.split("END:VTODO");
+	expect(master).toContain("SUMMARY:New");
+	expect(master).toContain("PRIORITY:9");
+	expect(master).not.toContain("DUE:");
+	expect(master).toContain("RRULE:FREQ=WEEKLY");
+	expect(master).toContain("X-APPLE-SORT-ORDER:42");
+	expect(master).toContain("BEGIN:VALARM\r\nSUMMARY:Old\r\nEND:VALARM");
+	expect(override).toContain("SUMMARY:Old");
+	expect(parseTasks(updated, "L", now)).toEqual([
+		{ uid: "x", title: "New", list: "L", due: null, priority: 9 },
+	]);
+});
+
 // A fake server answering the way tasks.org does: default DAV namespace, relative hrefs.
 const server = Bun.serve({
 	port: 0,
@@ -132,10 +176,25 @@ const server = Bun.serve({
 			);
 		}
 		if (path === "/calendars/me/home/" && request.method === "REPORT") {
-			const ics = `BEGIN:VCALENDAR\r\n${vtodo("UID:a", "SUMMARY:Water &lt;plants&gt;")}\r\nEND:VCALENDAR`;
 			return multistatus(
-				`<response><href>/calendars/me/home/a.ics</href><propstat><prop><C:calendar-data>${ics}</C:calendar-data></prop></propstat></response>`,
+				stored
+					? `<response><href>/calendars/me/home/a.ics</href><propstat><prop><getetag>&quot;${stored.version}&quot;</getetag><C:calendar-data>${stored.ics.replaceAll("<", "&lt;")}</C:calendar-data></prop></propstat></response>`
+					: "",
 			);
+		}
+		if (path === "/calendars/me/home/a.ics") {
+			if (request.headers.get("If-Match") !== `"${stored?.version}"`) {
+				return new Response(null, { status: 412 });
+			}
+			if (request.method === "DELETE") {
+				stored = null;
+				return new Response(null, { status: 204 });
+			}
+			stored = {
+				version: (stored?.version ?? 0) + 1,
+				ics: await request.text(),
+			};
+			return new Response(null, { status: 204 });
 		}
 		if (path.startsWith("/calendars/me/home/") && request.method === "PUT") {
 			if (request.headers.get("If-None-Match") !== "*") {
@@ -148,6 +207,10 @@ const server = Bun.serve({
 	},
 });
 const puts: { path: string; body: string }[] = [];
+let stored: { version: number; ics: string } | null = {
+	version: 1,
+	ics: `BEGIN:VCALENDAR\r\n${vtodo("UID:a", "SUMMARY:Water <plants>")}\r\nEND:VCALENDAR`,
+};
 afterAll(() => server.stop());
 
 test("CalDavClient discovers task lists and reads their tasks", async () => {
@@ -188,6 +251,36 @@ test("CalDavClient discovers task lists and reads their tasks", async () => {
 		}),
 	).rejects.toThrow("Unknown task list");
 	expect(puts).toHaveLength(1);
+});
+
+test("CalDavClient edits and deletes with the task's ETag", async () => {
+	const client = new CalDavClient(
+		{ url: server.url.origin, username: "me", password: "secret" },
+		0,
+	);
+	await client.getSnapshot();
+	await client.updateTask("a", {
+		title: "Water the plants",
+		due: null,
+		priority: 5,
+	});
+	expect((await client.getSnapshot()).tasks[0]).toMatchObject({
+		title: "Water the plants",
+		priority: 5,
+	});
+
+	// Someone else edits it: our ETag is stale and the server refuses.
+	if (stored) {
+		stored.version++;
+	}
+	const conflict = await client.deleteTask("a").catch((error) => error);
+	expect(conflict).toBeInstanceOf(CalDavError);
+	expect((conflict as CalDavError).status).toBe(412);
+
+	await client.getSnapshot();
+	await client.deleteTask("a");
+	expect((await client.getSnapshot()).tasks).toEqual([]);
+	await expect(client.deleteTask("a")).rejects.toThrow("Unknown task");
 });
 
 test("CalDavClient throws on bad credentials", async () => {

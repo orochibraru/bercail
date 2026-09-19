@@ -1,8 +1,17 @@
 <script lang="ts">
-	import { getLocalTimeZone, today, type DateValue } from '@internationalized/date';
+	import {
+		fromDate,
+		getLocalTimeZone,
+		parseDate,
+		toCalendarDate,
+		today,
+		type DateValue
+	} from '@internationalized/date';
 	import CalendarIcon from '@lucide/svelte/icons/calendar';
 	import ListTodoIcon from '@lucide/svelte/icons/list-todo';
+	import PenBoxIcon from '@lucide/svelte/icons/pen-box';
 	import PlusIcon from '@lucide/svelte/icons/plus';
+	import TrashIcon from '@lucide/svelte/icons/trash';
 	import { tick } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { invalidate } from '$app/navigation';
@@ -14,8 +23,9 @@
 	import * as Select from '#lib/components/ui/select/index.ts';
 	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.ts';
 	import { DUE_PRESETS, presetDate, type DuePreset } from '#lib/due-presets.ts';
-	import { addTask } from '#lib/remote/tasks.remote.ts';
+	import { addTask, updateTask } from '#lib/remote/tasks.remote.ts';
 	import type { Task, TasksSnapshot } from '#lib/server/monitoring/caldav.ts';
+	import { deleteModalState } from '#lib/store/modals.ts';
 	import { cn } from '#lib/utils.ts';
 
 	type Props = {
@@ -69,11 +79,46 @@
 	let listItems = $derived(lists.map((list) => ({ value: list.url, label: list.name })));
 	let titleInput: HTMLInputElement | null = $state(null);
 
-	async function openForm() {
+	let editing = $state<Task | null>(null);
+
+	const priorityBucket = (priority: number) =>
+		priority === 0 ? '0' : priority < 5 ? '1' : priority === 5 ? '5' : '9';
+
+	async function openForm(task: Task | null = null) {
+		editing = task;
+		allOpen = false;
 		adding = true;
 		draft = { ...emptyDraft, listUrl: draft.listUrl || (lists[0]?.url ?? '') };
+		if (task) {
+			const timed = task.due !== null && task.due.length > 10;
+			draft = {
+				...draft,
+				title: task.title,
+				when: task.due ? 'custom' : 'none',
+				due: !task.due
+					? undefined
+					: timed
+						? toCalendarDate(fromDate(new Date(task.due), getLocalTimeZone()))
+						: parseDate(task.due),
+				time:
+					task.due && timed
+						? new Date(task.due).toLocaleTimeString('en-GB', { timeStyle: 'short' })
+						: '',
+				priority: priorityBucket(task.priority)
+			};
+		}
 		await tick();
 		titleInput?.focus();
+	}
+
+	function closeForm() {
+		adding = false;
+		editing = null;
+	}
+
+	function confirmDelete(task: Task) {
+		allOpen = false;
+		deleteModalState.set({ open: true, type: 'task', id: task.uid, name: task.title });
 	}
 
 	function dueValue(): string | null {
@@ -90,20 +135,25 @@
 	async function submit(event: SubmitEvent) {
 		event.preventDefault();
 		saving = true;
+		const task = { title: draft.title, due: dueValue(), priority: Number(draft.priority) || 0 };
 		try {
-			await addTask({
-				listUrl: draft.listUrl,
-				title: draft.title,
-				due: dueValue(),
-				priority: Number(draft.priority) || 0
-			});
+			if (editing) {
+				// Keeps priorities like 3 from other apps when the colour wasn't changed.
+				if (draft.priority === priorityBucket(editing.priority)) task.priority = editing.priority;
+				await updateTask({ uid: editing.uid, ...task });
+				toast.success('Task saved');
+				closeForm();
+			} else {
+				await addTask({ listUrl: draft.listUrl, ...task });
+				toast.success('Task added');
+				draft = { ...emptyDraft, listUrl: draft.listUrl };
+				titleInput?.focus();
+			}
 			await invalidate('app:monitoring');
-			toast.success('Task added');
-			draft = { ...emptyDraft, listUrl: draft.listUrl };
-			titleInput?.focus();
 		} catch (error) {
 			const message = (error as { body?: { message?: string } }).body?.message;
-			toast.error(message ?? 'Failed to add the task');
+			toast.error(message ?? `Failed to ${editing ? 'save' : 'add'} the task`);
+			await invalidate('app:monitoring');
 		} finally {
 			saving = false;
 		}
@@ -168,14 +218,30 @@
 					>{task.title}</span
 				>
 				<span class="text-muted-foreground hidden flex-none text-xs sm:inline">{task.list}</span>
-				{#if due}
-					<span
-						class={cn(
-							'w-28 flex-none text-right text-xs whitespace-nowrap',
-							due.overdue ? 'font-semibold text-red-600 dark:text-red-400' : 'text-muted-foreground'
-						)}>{due.text}</span
+				<span
+					class={cn(
+						'w-28 flex-none text-right text-xs whitespace-nowrap',
+						due?.overdue ? 'font-semibold text-red-600 dark:text-red-400' : 'text-muted-foreground'
+					)}>{due?.text}</span
+				>
+				<div class="flex flex-none gap-1">
+					<button
+						onclick={() => openForm(task)}
+						title="Edit task"
+						aria-label="Edit {task.title}"
+						class="text-muted-foreground hover:bg-muted hover:text-foreground flex size-[22px] cursor-pointer items-center justify-center rounded"
 					>
-				{/if}
+						<PenBoxIcon class="size-3" />
+					</button>
+					<button
+						onclick={() => confirmDelete(task)}
+						title="Delete task"
+						aria-label="Delete {task.title}"
+						class="hover:bg-muted flex size-[22px] cursor-pointer items-center justify-center rounded text-red-600 dark:text-red-500"
+					>
+						<TrashIcon class="size-3" />
+					</button>
+				</div>
 			</li>
 		{/each}
 	</ul>
@@ -199,7 +265,13 @@
 		<span class="text-foreground text-lg font-bold">Tasks</span>
 		<span class="text-muted-foreground text-sm">{tasks.length} open</span>
 		{#if !adding && lists.length > 0}
-			<Button variant="ghost" size="sm" class="ml-auto" aria-label="Add task" onclick={openForm}>
+			<Button
+				variant="ghost"
+				size="sm"
+				class="ml-auto"
+				aria-label="Add task"
+				onclick={() => openForm()}
+			>
 				<PlusIcon />
 				Add
 			</Button>
@@ -210,7 +282,7 @@
 			<Input
 				bind:ref={titleInput}
 				bind:value={draft.title}
-				onkeydown={(event) => event.key === 'Escape' && (adding = false)}
+				onkeydown={(event) => event.key === 'Escape' && closeForm()}
 				placeholder="New task"
 				aria-label="Task title"
 				maxlength={500}
@@ -256,7 +328,7 @@
 						<Calendar
 							type="single"
 							bind:value={draft.due}
-							minValue={today(getLocalTimeZone())}
+							minValue={editing ? undefined : today(getLocalTimeZone())}
 							onValueChange={() => (dueOpen = false)}
 						/>
 					</Popover.Content>
@@ -285,20 +357,22 @@
 					</ToggleGroup.Item>
 				{/each}
 			</ToggleGroup.Root>
-			<Select.Root type="single" items={listItems} bind:value={draft.listUrl}>
-				<Select.Trigger aria-label="List" class="w-40">
-					{listItems.find((item) => item.value === draft.listUrl)?.label ?? 'List'}
-				</Select.Trigger>
-				<Select.Content>
-					<Select.Group>
-						{#each listItems as item (item.value)}
-							<Select.Item value={item.value} label={item.label}>{item.label}</Select.Item>
-						{/each}
-					</Select.Group>
-				</Select.Content>
-			</Select.Root>
-			<Button type="submit" loading={saving}>Add</Button>
-			<Button variant="ghost" onclick={() => (adding = false)}>Cancel</Button>
+			{#if !editing}
+				<Select.Root type="single" items={listItems} bind:value={draft.listUrl}>
+					<Select.Trigger aria-label="List" class="w-40">
+						{listItems.find((item) => item.value === draft.listUrl)?.label ?? 'List'}
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Group>
+							{#each listItems as item (item.value)}
+								<Select.Item value={item.value} label={item.label}>{item.label}</Select.Item>
+							{/each}
+						</Select.Group>
+					</Select.Content>
+				</Select.Root>
+			{/if}
+			<Button type="submit" loading={saving}>{editing ? 'Save' : 'Add'}</Button>
+			<Button variant="ghost" onclick={closeForm}>Cancel</Button>
 		</form>
 	{/if}
 	{#if tasks.length === 0}

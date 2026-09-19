@@ -159,6 +159,29 @@ test("showcase", async ({ page }) => {
 	).toContainText("Tomorrow 9:00 AM");
 	await expect(allTasks.getByRole("listitem")).toHaveCount(11);
 	await page.keyboard.press("Escape");
+	await expect(allTasks).toBeHidden();
+
+	await page
+		.getByRole("button", { name: "Edit Water the plants", exact: true })
+		.click();
+	await expect(page.getByLabel("Task title")).toHaveValue("Water the plants");
+	await expect(page.getByLabel("Due time")).toHaveValue("09:00");
+	await page.getByLabel("Task title").fill("Water the balcony plants");
+	await page.getByRole("radio", { name: "Medium priority" }).click();
+	await page.getByRole("button", { name: "Save", exact: true }).click();
+	await expect(page.getByText("Task saved")).toBeVisible();
+	const edited = page
+		.getByRole("listitem")
+		.filter({ hasText: "Water the balcony plants" });
+	await expect(edited).toContainText("Tomorrow 9:00 AM");
+	await expect(edited.locator(".border-amber-500")).toHaveCount(1);
+
+	await page
+		.getByRole("button", { name: "Delete Renew the domain", exact: true })
+		.click();
+	await page.getByRole("button", { name: "Continue" }).click();
+	await expect(page.getByText('"Renew the domain" deleted')).toBeVisible();
+	await expect(page.getByText("Renew the domain")).toHaveCount(0);
 
 	await page.getByRole("button", { name: "Refresh tasks" }).click();
 	await expect(
