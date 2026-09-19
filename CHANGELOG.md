@@ -1,3 +1,11 @@
+# Changelog
+
+## [1.0.7](https://github.com/orochibraru/bercail/compare/v1.0.6...v1.0.7) (2026-09-19)
+
+### Features
+
+* try using releaser ([9167ea5](https://github.com/orochibraru/bercail/commit/9167ea5f31cd2e08400b78cd4ea51545ff44db91))
+
 ## [1.0.6](https://github.com/orochibraru/bercail/compare/v1.0.5...v1.0.6) (2026-09-19)
 
 ### Features
