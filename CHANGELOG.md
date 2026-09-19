@@ -1,3 +1,9 @@
+## [1.0.3](https://github.com/orochibraru/bercail/compare/v1.0.2...v1.0.3) (2026-09-18)
+
+### Features
+
+* tasks.org support ([42ec3d3](https://github.com/orochibraru/bercail/commit/42ec3d372406b3f1d2867d77b7554c1c5e5f4a01))
+
 ## [1.0.2](https://github.com/orochibraru/bercail/compare/v1.0.1...v1.0.2) (2026-09-18)
 
 ### Features
