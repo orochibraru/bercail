@@ -1,6 +1,6 @@
 # Development
 
-Requires [Bun](https://bun.sh) and [prek](https://prek.j178.dev/) (`brew install prek`).
+Requires [Bun](https://bun.sh). [prek](https://prek.j178.dev/) comes in as a dev dependency.
 
 ```bash
 bun install   # also installs the git hooks
@@ -15,7 +15,7 @@ bun dev
 | `bun run format`      | Format TypeScript, Svelte and Markdown          |
 | `bun run test`        | Run the test suite                              |
 | `bun run screenshots` | Regenerate the screenshots in `docs/images/`    |
-| `prek run -a`         | Run every git hook against the whole repository |
+| `bun x prek run -a`   | Run every git hook against the whole repository |
 
 The hooks format, lint, type check and test on commit, scan for secrets and typos, and require
 [Conventional Commits](https://www.conventionalcommits.org/) messages.

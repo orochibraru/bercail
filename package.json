@@ -26,6 +26,7 @@
 		"@biomejs/biome": "2.5.14",
 		"@crxjs/vite-plugin": "^2.7.1",
 		"@internationalized/date": "^3.12.4",
+		"@j178/prek": "^0.5.3",
 		"@kitql/helpers": "^0.8.15",
 		"@lucide/svelte": "^1.47.0",
 		"@orochibraru/svelte-smol": "^1.7.0-next.3",
