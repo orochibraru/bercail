@@ -56,7 +56,7 @@
 		"vite": "^8.3.0"
 	},
 	"overrides": {
-		"typebox": "1.2.19"
+		"typebox": "1.3.34"
 	},
 	"dependencies": {
 		"dotenv": "^17.4.2",
