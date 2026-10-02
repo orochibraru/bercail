@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.11](https://github.com/orochibraru/bercail/compare/v1.0.10...v1.0.11) (2026-10-02)
+
+### Features
+
+* bordeaux theme with accent, font and corner options, tile tasks panel, and screenshots regenerated in CI on release ([02975f4](https://github.com/orochibraru/bercail/commit/02975f44a4b4a956223f35c4459a4f2d56b8b3c6))
+
+### Bug Fixes
+
+* **deps:** update dependency dotenv to v18 (#6) ([962d156](https://github.com/orochibraru/bercail/commit/962d156d14c22da4fbc7b12f951962d020c9b398))
+
 ## [1.0.10](https://github.com/orochibraru/bercail/compare/v1.0.9...v1.0.10) (2026-09-21)
 
 ### Features
