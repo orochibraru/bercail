@@ -21,6 +21,7 @@
 	import GroupModal from '#lib/components/modals/GroupModal.svelte';
 	import ItemModal from '#lib/components/modals/ItemModal.svelte';
 	import { formatUptime } from '#lib/helpers.ts';
+	import { navigateTiles } from '#lib/keyboard.ts';
 	import type { Group, Item } from '#lib/model.ts';
 	import type { WeatherData } from '#lib/server/monitoring/weather/weather-types.ts';
 	import type { TasksSnapshot } from '#lib/server/monitoring/caldav.ts';
@@ -190,6 +191,8 @@
 	});
 </script>
 
+<svelte:document onkeydown={navigateTiles} />
+
 <svelte:head>
 	<title>{data.config.appTitle} - Dashboard</title>
 </svelte:head>
@@ -291,7 +294,7 @@
 	{#if data.uptime}
 		Uptime {formatUptime(data.uptime)} ·
 	{/if}
-	Refreshed every 5s
+	Refreshed every 5s · <kbd class="font-mono">?</kbd> for keyboard shortcuts
 </div>
 
 <GroupModal />

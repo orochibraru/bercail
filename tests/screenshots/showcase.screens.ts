@@ -192,6 +192,27 @@ test("showcase", async ({ page }) => {
 	await page.reload();
 	await page.waitForLoadState("networkidle");
 
+	// Keyboard: arrows walk the tiles across groups, typing anywhere searches without losing keys.
+	const link = (title: string) =>
+		page.locator("a[data-nav]", { hasText: title });
+	await page.keyboard.press("ArrowDown");
+	await page.keyboard.press("End");
+	await expect(link("Gitea")).toBeFocused();
+	await page.keyboard.press("ArrowUp");
+	await expect(link("AdGuard Home")).toBeFocused();
+	await page.keyboard.press("ArrowRight");
+	await expect(link("Uptime Kuma")).toBeFocused();
+	await page.keyboard.type("jel");
+	await expect(
+		page.getByPlaceholder("Type a command or search..."),
+	).toHaveValue("jel");
+	await page.keyboard.press("Escape");
+	await page.keyboard.press("?");
+	await expect(
+		page.getByRole("dialog", { name: "Keyboard shortcuts" }),
+	).toBeVisible();
+	await page.keyboard.press("Escape");
+
 	await page.keyboard.press("ControlOrMeta+k");
 	await page.getByPlaceholder("Type a command or search...").fill("ra");
 	await shoot(page, "search");

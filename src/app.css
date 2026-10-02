@@ -165,6 +165,11 @@
 		cursor: pointer;
 	}
 
+	:focus-visible {
+		outline: 2px solid var(--ring);
+		outline-offset: 2px;
+	}
+
 	.invalid {
 		@apply text-red-600;
 		@apply text-xs;
@@ -232,6 +237,16 @@ body::after {
 
 [data-slot="dialog-overlay"] {
 	backdrop-filter: blur(4px);
+}
+
+/* Arrow-key targets light up their whole tile instead of the link or checkbox inside it. */
+[data-nav]:focus-visible {
+	outline: none;
+}
+
+[data-tile]:has([data-nav]:focus-visible) {
+	outline: 2px solid var(--primary);
+	outline-offset: 2px;
 }
 
 [data-slot="button"].bg-primary {

@@ -260,6 +260,7 @@
 					{#snippet child({ props })}
 						<li
 							{...props}
+							data-tile
 							class="group bg-muted/60 hover:bg-muted flex min-w-0 items-center gap-2.5 rounded-md px-3 py-2 transition-colors"
 						>
 							<button
@@ -267,6 +268,7 @@
 								title={isDone ? 'Mark as not done' : 'Mark as done'}
 								aria-label="{isDone ? 'Mark as not done' : 'Mark as done'}: {task.title}"
 								aria-pressed={isDone}
+								data-nav
 								class="group/check -m-1 flex flex-none cursor-pointer items-center justify-center rounded-full p-1"
 							>
 								<span

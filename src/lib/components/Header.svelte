@@ -1,6 +1,7 @@
 <script lang="ts">
 	import SettingsIcon from '@lucide/svelte/icons/settings';
 	import { onDestroy } from 'svelte';
+	import KeyboardShortcuts from '#lib/components/KeyboardShortcuts.svelte';
 	import SearchBox from '#lib/components/SearchBox.svelte';
 	import type { Group } from '#lib/model.ts';
 	import { resolve } from '$app/paths';
@@ -42,6 +43,7 @@
 
 	<div class="order-3 ml-auto flex items-center gap-2.5">
 		<SearchBox {groups} />
+		<KeyboardShortcuts />
 		<a
 			href="/settings"
 			title="Open settings"

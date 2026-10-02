@@ -23,7 +23,10 @@ top, and your links below, each with a live online/offline indicator.
   Radicale, ...), soonest due first, with overdue ones in red. Connect it in Settings with the
   CalDAV URL, your username and an app password. Read-only.
 - **System stats.** CPU, RAM, disk, temperature and GPU gauges for the host the app runs on.
-- **Search.** `Cmd+K` / `Ctrl+K` opens a palette to jump to any link or search the web.
+- **Search.** Start typing anywhere, or press `/`, `Cmd+K` or `Ctrl+K`, to jump to any link or
+  search the web.
+- **Keyboard first.** The arrow keys move between links and tasks across every group, `Enter` opens
+  the link or ticks the task off, and `?` lists every shortcut.
 - **Backup and restore.** Export your groups and links to JSON from Settings, and import them back.
 - **Appearance.** Light, dark or system per device, and for every device a Bordeaux, blue, teal,
   green, amber or rose accent, a sans or monospace font, and rounded or boxy corners.

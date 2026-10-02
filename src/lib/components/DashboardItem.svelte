@@ -37,6 +37,7 @@
 
 <ContextMenu.Root>
 	<ContextMenu.Trigger
+		data-tile
 		class="bg-muted/60 hover:bg-muted flex items-center gap-2.5 rounded-lg px-3.5 py-3 transition-colors"
 	>
 		<span
@@ -51,6 +52,7 @@
 		<a
 			target={item.target === '_self' ? '_top' : item.target}
 			href={item.url}
+			data-nav
 			class="flex min-w-0 flex-1 items-center gap-2.5"
 		>
 			<div
@@ -101,7 +103,7 @@
 			<button
 				onclick={editItem}
 				title="Edit link"
-				aria-label="Edit link"
+				aria-label="Edit {item.title}"
 				class="text-muted-foreground hover:bg-card hover:text-foreground flex h-[22px] w-[22px] flex-none cursor-pointer items-center justify-center rounded"
 			>
 				<PenBoxIcon class="size-3" />
@@ -109,7 +111,7 @@
 			<button
 				onclick={deleteItem}
 				title="Delete link"
-				aria-label="Delete link"
+				aria-label="Delete {item.title}"
 				class="hover:bg-card flex h-[22px] w-[22px] flex-none cursor-pointer items-center justify-center rounded text-red-600 dark:text-red-500"
 			>
 				<TrashIcon class="size-3" />

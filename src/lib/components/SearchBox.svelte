@@ -1,7 +1,8 @@
 <script lang="ts">
+	import SearchIcon from '@lucide/svelte/icons/search';
 	import * as Command from '#lib/components/ui/command/index.ts';
-	import Input from '#lib/components/ui/input/input.svelte';
 	import { isUrlString } from '#lib/helpers.ts';
+	import { isOwnedByWidget } from '#lib/keyboard.ts';
 	import type { Group, Item } from '#lib/model.ts';
 	import { searchEngines } from '#lib/search.ts';
 	import { deleteModalState, groupModalState, itemModalState } from '#lib/store/modals.ts';
@@ -27,6 +28,21 @@
 		if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
 			e.preventDefault();
 			open = !open;
+			return;
+		}
+
+		// Typing anywhere searches: the first key opens the palette, and the ones typed before its
+		// input takes focus are kept. `/` opens it empty, `?` is the shortcuts list.
+		const printable = e.key.length === 1 && e.key !== ' ' && e.key !== '?';
+		if (!printable || e.metaKey || e.ctrlKey || e.altKey || isOwnedByWidget(e.target)) {
+			return;
+		}
+		e.preventDefault();
+		if (!open) {
+			searchValue = e.key === '/' ? '' : e.key;
+			open = true;
+		} else {
+			searchValue += e.key;
 		}
 	}
 
@@ -53,14 +69,24 @@
 
 <svelte:document onkeydown={handleKeydown} />
 
-<Input
-	bind:value={searchValue}
-	placeholder="Search (⌘ + k)"
+<button
+	type="button"
 	onclick={() => (open = true)}
-	class="border-border bg-card dark:bg-card min-w-[220px] rounded-md border shadow-none"
-/>
+	class="border-border bg-card text-muted-foreground hover:text-foreground flex h-9.5 min-w-[220px] cursor-pointer items-center gap-2 rounded-md border px-3 text-sm transition-colors"
+>
+	<SearchIcon class="size-4" />
+	Search
+	<kbd class="bg-muted ml-auto rounded px-1.5 font-mono text-[11px]">/</kbd>
+</button>
 
-<Command.Dialog bind:open filter={customFilter}>
+<!-- Cleared on close, so ⌘K never reopens on the last query with new keys tacked on. -->
+<Command.Dialog
+	bind:open
+	filter={customFilter}
+	onOpenChange={(value) => {
+		if (!value) searchValue = '';
+	}}
+>
 	<Command.Input bind:value={searchValue} placeholder="Type a command or search..." />
 	<Command.List>
 		<Command.Empty>No results found.</Command.Empty>
