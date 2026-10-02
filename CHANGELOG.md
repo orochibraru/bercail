@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.12](https://github.com/orochibraru/bercail/compare/v1.0.11...v1.0.12) (2026-10-02)
+
+### Features
+
+* keyboard navigation with type-to-search, arrow keys across tiles and a shortcuts list ([d28867e](https://github.com/orochibraru/bercail/commit/d28867e0660a3ad9d1b1eba54949a3357f29495b))
+
 ## [1.0.11](https://github.com/orochibraru/bercail/compare/v1.0.10...v1.0.11) (2026-10-02)
 
 ### Features
