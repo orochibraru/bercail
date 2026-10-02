@@ -61,7 +61,7 @@
 		"typebox": "1.2.19"
 	},
 	"dependencies": {
-		"dotenv": "^17.4.2",
+		"dotenv": "^18.0.0",
 		"drizzle-orm": "^0.45.2",
 		"drizzle-zod": "^0.8.3",
 		"mode-watcher": "^1.1.0",
