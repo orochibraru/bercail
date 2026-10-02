@@ -1,7 +1,7 @@
 import { sveltekit } from "@sveltejs/kit/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
-import adapter from "@orochibraru/svelte-smol";
+import adapter from "@sveltejs/adapter-bun";
 
 export default defineConfig({
     plugins: [tailwindcss(), sveltekit({
@@ -15,10 +15,7 @@ export default defineConfig({
             },
         },
 
-        // adapter-auto only supports some environments, see https://svelte.dev/docs/kit/adapter-auto for a list.
-        // If your environment is not supported, or you settled on a specific environment, switch out the adapter.
-        // See https://svelte.dev/docs/kit/adapters for more information about adapters.
-        adapter: adapter({ precompress: true }),
+        adapter: adapter({ buildOptions: { compile: true } }),
 
         experimental: {
             remoteFunctions: true,

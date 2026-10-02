@@ -31,6 +31,10 @@ export const init: ServerInit = async () => {
 };
 
 export const handle: Handle = async ({ event, resolve }) => {
+	if (event.url.pathname === "/_health") {
+		return resolve(event);
+	}
+
 	logger.info(`${green(event.request.method)} ${event.url.href}`);
 
 	// Static files, including the service worker, are served before this hook and stay public.

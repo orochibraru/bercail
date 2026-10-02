@@ -17,12 +17,12 @@ COPY . .
 
 RUN bun --bun run build
 
-# Runner — no Bun, no node_modules. @orochibraru/svelte-smol compiles the app
-# (Bun runtime embedded) into the single self-contained /app/build/server binary.
+# Runner, no Bun, no node_modules. @sveltejs/adapter-bun compiles the app
+# (Bun runtime and assets embedded) into the self-contained /app/build/server binary.
 FROM debian:bookworm-slim AS runner
 
 RUN apt-get update \
-	&& apt-get install -y --no-install-recommends ca-certificates gosu \
+	&& apt-get install -y --no-install-recommends ca-certificates curl gosu \
 	&& rm -rf /var/lib/apt/lists/* \
 	&& groupadd --system --gid 10001 app \
 	&& useradd --system --create-home --uid 10001 --gid 10001 app
@@ -45,14 +45,13 @@ EXPOSE 3000/tcp
 
 ENV HOST=0.0.0.0
 ENV PORT=3000
-ENV ORIGIN=http://localhost:3000
 
 # uid/gid the server runs as; the entrypoint chowns /app/data to match.
 ENV PUID=10001
 ENV PGID=10001
 
 HEALTHCHECK --interval=10s --timeout=10s --start-period=5s --retries=3 \
-	CMD ["/app/build/healthcheck"]
+	CMD ["sh", "-c", "curl -fsS \"http://127.0.0.1:${PORT}/_health\" || exit 1"]
 
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["/app/build/server"]

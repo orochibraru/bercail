@@ -44,7 +44,8 @@ services:
     image: orochibraru/bercail:latest
     restart: unless-stopped
     environment:
-      ORIGIN: 'https://dash.example.com'
+      PROTOCOL_HEADER: 'x-forwarded-proto'
+      HOST_HEADER: 'x-forwarded-host'
     ports:
       - '3000:3000'
     volumes:
@@ -59,7 +60,8 @@ Everything is optional. For local development, copy [`.env.example`](.env.exampl
 
 | Variable                | Default                                        | Description                                                                                  |
 | ----------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `ORIGIN`                | none                                           | Public URL of the app. Set it in production, forms fail without it behind a reverse proxy.   |
+| `PROTOCOL_HEADER`       | none                                           | Header your reverse proxy puts the public scheme in, usually `x-forwarded-proto`.            |
+| `HOST_HEADER`           | none                                           | Header your reverse proxy puts the public host in, usually `x-forwarded-host`.               |
 | `PORT`                  | `3000`                                         | Port the server listens on.                                                                  |
 | `HOST`                  | `0.0.0.0`                                      | Address the server binds to.                                                                 |
 | `DB_FILE_NAME`          | `data/db.sqlite`                               | Path to the SQLite database.                                                                 |
@@ -74,6 +76,11 @@ Everything is optional. For local development, copy [`.env.example`](.env.exampl
 | `OIDC_CLIENT_SECRET`    | none                                           | Client secret. Required with `OIDC_ISSUER`.                                                  |
 | `OIDC_ALLOWED_EMAILS`   | none                                           | Comma-separated emails allowed to sign in. Unset lets in anyone the provider signs in.       |
 
+The app assumes it is served over HTTPS. Without `PROTOCOL_HEADER` it takes the scheme as `https`
+and the host from the `Host` header, so forms fail when it is reached over plain HTTP. Put it behind
+a reverse proxy and set both headers. Only set them when the proxy is the only way in: a client
+reaching the app directly can forge them.
+
 ### Weather location
 
 The first of these that is set wins:
@@ -86,7 +93,7 @@ The first of these that is set wins:
 
 Without `OIDC_ISSUER` the app is open to anyone who can reach it. With it, every page asks for a
 sign-in through your provider (Pocket ID, Authentik, Authelia, Keycloak, ...). Register a
-confidential client with the redirect URL `<ORIGIN>/auth/callback`. Sessions last 30 days and
+confidential client with the redirect URL `https://<your domain>/auth/callback`. Sessions last 30 days and
 renew while in use.
 
 Set `OIDC_ALLOWED_EMAILS` unless the provider already restricts who can use this client. With a

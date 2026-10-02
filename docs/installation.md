@@ -6,7 +6,8 @@ services:
     image: orochibraru/bercail:latest
     restart: unless-stopped
     environment:
-      ORIGIN: 'https://dash.example.com'
+      PROTOCOL_HEADER: 'x-forwarded-proto'
+      HOST_HEADER: 'x-forwarded-host'
     ports:
       - '3000:3000'
     volumes:

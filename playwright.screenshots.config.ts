@@ -14,6 +14,8 @@ export default defineConfig({
 		baseURL: `http://localhost:${APP_PORT}`,
 		viewport: { width: 1440, height: 900 },
 		deviceScaleFactor: 2,
+		// The server assumes https unless told otherwise, and forms fail on an origin mismatch.
+		extraHTTPHeaders: { "x-forwarded-proto": "http" },
 	},
 	webServer: [
 		{
@@ -29,7 +31,7 @@ export default defineConfig({
 			timeout: 180_000,
 			env: {
 				PORT: String(APP_PORT),
-				ORIGIN: `http://localhost:${APP_PORT}`,
+				PROTOCOL_HEADER: "x-forwarded-proto",
 				DB_FILE_NAME: "data/screenshots/db.sqlite",
 				WEATHER_LAT: "48.8566",
 				WEATHER_LON: "2.3522",
