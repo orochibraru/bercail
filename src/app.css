@@ -1,82 +1,94 @@
 @import "tailwindcss";
+/* Bundled, not fetched: a self-hosted start page shouldn't call a font CDN on every new tab. */
+@import "@fontsource-variable/jetbrains-mono";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 
+/* Ported from Penombre. Bordeaux is the default; the data-* options at the bottom override it. */
 :root {
-	--radius: 0.625rem;
-	--background: oklch(0.967 0.001 286.375);
-	--foreground: oklch(0.141 0.005 285.823);
-	--card: oklch(1 0 0);
-	--card-foreground: oklch(0.141 0.005 285.823);
-	--popover: oklch(1 0 0);
-	--popover-foreground: oklch(0.141 0.005 285.823);
-	--primary: oklch(0.56 0.09 155);
-	--primary-foreground: oklch(0.985 0.01 155);
-	--secondary: oklch(0.967 0.001 286.375);
-	--secondary-foreground: oklch(0.21 0.006 285.885);
-	--muted: oklch(0.967 0.001 286.375);
-	--muted-foreground: oklch(0.552 0.016 285.938);
-	--accent: oklch(0.967 0.001 286.375);
-	--accent-foreground: oklch(0.21 0.006 285.885);
-	--destructive: oklch(0.577 0.245 27.325);
-	--border: oklch(0.92 0.004 286.32);
-	--input: oklch(0.92 0.004 286.32);
-	--ring: oklch(0.56 0.09 155 / 60%);
-	--chart-1: oklch(0.646 0.222 41.116);
-	--chart-2: oklch(0.6 0.118 184.704);
-	--chart-3: oklch(0.398 0.07 227.392);
-	--chart-4: oklch(0.828 0.189 84.429);
-	--chart-5: oklch(0.769 0.188 70.08);
-	--sidebar: oklch(0.985 0 0);
-	--sidebar-foreground: oklch(0.141 0.005 285.823);
-	--sidebar-primary: oklch(0.21 0.006 285.885);
-	--sidebar-primary-foreground: oklch(0.985 0 0);
-	--sidebar-accent: oklch(0.967 0.001 286.375);
-	--sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-	--sidebar-border: oklch(0.92 0.004 286.32);
-	--sidebar-ring: oklch(0.705 0.015 286.067);
+	--radius: 0.75rem;
+	--app-font:
+		ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+		"Helvetica Neue", Arial, sans-serif;
+
+	/* The solid ground under the aurora. */
+	--surface-base: oklch(0.985 0.004 285);
+
+	--primary: oklch(0.44 0.15 8);
+	--primary-foreground: oklch(0.99 0 0);
+	--brand-2: oklch(0.56 0.17 350);
+	--brand-3: oklch(0.68 0.12 40);
+	--shadow-hue: 8;
+
+	/* Panels are translucent so the aurora washes through them. */
+	--background: oklch(1 0 0 / 0.55);
+	--foreground: oklch(0.19 0.02 285);
+	--card: oklch(1 0 0 / 0.55);
+	--card-foreground: oklch(0.19 0.02 285);
+	--popover: oklch(0.995 0.002 285 / 0.94);
+	--popover-foreground: oklch(0.19 0.02 285);
+	--secondary: oklch(0.62 0.05 290 / 0.1);
+	--secondary-foreground: oklch(0.28 0.03 285);
+	--muted: oklch(0.62 0.05 290 / 0.1);
+	--muted-foreground: oklch(0.5 0.03 286);
+	--accent: color-mix(in oklab, var(--primary) 12%, transparent);
+	--accent-foreground: oklch(0.28 0.03 285);
+	--destructive: oklch(0.6 0.235 22);
+	--border: oklch(0.45 0.05 290 / 0.28);
+	--input: oklch(0.45 0.05 290 / 0.32);
+
+	--chart-4: oklch(0.72 0.17 155);
+	--chart-5: oklch(0.76 0.16 65);
 }
 
 .dark {
-	--background: oklch(0.141 0.005 285.823);
-	--foreground: oklch(0.985 0 0);
-	--card: oklch(0.21 0.006 285.885);
-	--card-foreground: oklch(0.985 0 0);
-	--popover: oklch(0.21 0.006 285.885);
-	--popover-foreground: oklch(0.985 0 0);
-	--primary: oklch(0.76 0.1 155);
-	--primary-foreground: oklch(0.22 0.04 155);
-	--secondary: oklch(0.274 0.006 286.033);
-	--secondary-foreground: oklch(0.985 0 0);
-	--muted: oklch(0.274 0.006 286.033);
-	--muted-foreground: oklch(0.705 0.015 286.067);
-	--accent: oklch(0.274 0.006 286.033);
-	--accent-foreground: oklch(0.985 0 0);
-	--destructive: oklch(0.704 0.191 22.216);
-	--border: oklch(1 0 0 / 10%);
-	--input: oklch(1 0 0 / 15%);
-	--ring: oklch(0.76 0.1 155 / 60%);
-	--chart-1: oklch(0.488 0.243 264.376);
-	--chart-2: oklch(0.696 0.17 162.48);
-	--chart-3: oklch(0.769 0.188 70.08);
-	--chart-4: oklch(0.627 0.265 303.9);
-	--chart-5: oklch(0.645 0.246 16.439);
-	--sidebar: oklch(0.21 0.006 285.885);
-	--sidebar-foreground: oklch(0.985 0 0);
-	--sidebar-primary: oklch(60.488% 0.19949 267.279);
-	--sidebar-primary-foreground: oklch(0.985 0 0);
-	--sidebar-accent: oklch(60.488% 0.19949 267.279 / 0.038);
-	--sidebar-accent-foreground: oklch(0.985 0 0);
-	--sidebar-border: oklch(1 0 0 / 10%);
-	--sidebar-ring: oklch(0.552 0.016 285.938);
+	--surface-base: oklch(0.155 0.018 288);
+
+	--primary: oklch(0.62 0.17 12);
+
+	--background: oklch(0.22 0.02 288 / 0.5);
+	--foreground: oklch(0.97 0.005 285);
+	--card: oklch(0.245 0.022 288 / 0.5);
+	--card-foreground: oklch(0.97 0.005 285);
+	--popover: oklch(0.22 0.02 288 / 0.95);
+	--popover-foreground: oklch(0.97 0.005 285);
+	--secondary: oklch(0.8 0.05 290 / 0.12);
+	--secondary-foreground: oklch(0.97 0.005 285);
+	--muted: oklch(0.8 0.05 290 / 0.1);
+	--muted-foreground: oklch(0.72 0.03 287);
+	--accent: color-mix(in oklab, var(--primary) 18%, transparent);
+	--accent-foreground: oklch(0.97 0.005 285);
+	--destructive: oklch(0.7 0.19 22);
+	--border: oklch(0.85 0.05 290 / 0.22);
+	--input: oklch(0.85 0.05 290 / 0.26);
+
+	--chart-4: oklch(0.76 0.16 155);
+	--chart-5: oklch(0.8 0.15 65);
+}
+
+/* Everything the accent drives, derived from it so an accent only has to set three colours. */
+:root {
+	--gradient-brand: linear-gradient(
+		135deg,
+		var(--primary),
+		color-mix(in oklab, var(--primary) 55%, var(--brand-2)) 55%,
+		var(--brand-2)
+	);
+	--ring: color-mix(in oklab, var(--primary) 55%, transparent);
+	--chart-1: var(--primary);
+	--chart-2: var(--brand-2);
+	--chart-3: var(--brand-3);
 }
 
 @theme inline {
-	--font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-	--radius-sm: calc(var(--radius) - 4px);
-	--radius-md: calc(var(--radius) - 2px);
+	--font-sans: var(--app-font);
+	--font-mono:
+		"JetBrains Mono Variable", ui-monospace, "SFMono-Regular", "Menlo",
+		monospace;
+	--radius-sm: max(0px, calc(var(--radius) - 4px));
+	--radius-md: max(0px, calc(var(--radius) - 2px));
 	--radius-lg: var(--radius);
 	--radius-xl: calc(var(--radius) + 4px);
 	--color-background: var(--background);
@@ -102,19 +114,50 @@
 	--color-chart-3: var(--chart-3);
 	--color-chart-4: var(--chart-4);
 	--color-chart-5: var(--chart-5);
-	--color-sidebar: var(--sidebar);
-	--color-sidebar-foreground: var(--sidebar-foreground);
-	--color-sidebar-primary: var(--sidebar-primary);
-	--color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-	--color-sidebar-accent: var(--sidebar-accent);
-	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-	--color-sidebar-border: var(--sidebar-border);
-	--color-sidebar-ring: var(--sidebar-ring);
+	--color-brand-2: var(--brand-2);
+	--color-brand-3: var(--brand-3);
+	--color-surface-base: var(--surface-base);
 }
 
 @layer base {
 	* {
 		@apply border-border outline-ring/50;
+	}
+
+	/* The ground sits on <html> so panels above can be translucent without stacking washes. */
+	html {
+		background-color: var(--surface-base);
+	}
+
+	body {
+		@apply text-foreground;
+		background-color: transparent;
+	}
+
+	/* The aurora: two blurred colour fields on opposite corners, fixed while content scrolls. */
+	body::before {
+		content: "";
+		position: fixed;
+		inset: -12vmax;
+		z-index: -10;
+		pointer-events: none;
+		background:
+			radial-gradient(
+				38vmax 32vmax at 92% 6%,
+				color-mix(in oklab, var(--brand-2) 80%, transparent),
+				transparent 70%
+			),
+			radial-gradient(
+				34vmax 30vmax at 14% 96%,
+				color-mix(in oklab, var(--brand-3) 62%, transparent),
+				transparent 70%
+			);
+		filter: blur(72px) saturate(140%);
+		opacity: 0.85;
+	}
+
+	.dark body::before {
+		opacity: 0.6;
 	}
 
 	button,
@@ -126,4 +169,155 @@
 		@apply text-red-600;
 		@apply text-xs;
 	}
+}
+
+/* A frosted card on the aurora. The blur stays light: heavier shows the gradient as a rectangle. */
+@utility panel {
+	background-color: var(--card);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-lg);
+	backdrop-filter: blur(10px);
+	box-shadow:
+		0 1px 2px oklch(0.2 0.04 var(--shadow-hue) / 0.04),
+		0 8px 24px -12px oklch(0.35 0.12 var(--shadow-hue) / 0.18);
+}
+
+/* Film grain, so the aurora doesn't band. Unlayered so utilities can't override it. */
+body::after {
+	content: "";
+	position: fixed;
+	inset: 0;
+	z-index: 9999;
+	pointer-events: none;
+	opacity: 0.035;
+	mix-blend-mode: soft-light;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.dark body::after {
+	opacity: 0.05;
+}
+
+[data-slot="popover-content"],
+[data-slot="command"],
+[data-slot="tooltip-content"] {
+	background-color: color-mix(in oklab, var(--popover) 97%, transparent);
+	backdrop-filter: blur(20px) saturate(160%);
+	box-shadow:
+		0 1px 2px oklch(0.2 0.04 var(--shadow-hue) / 0.1),
+		0 12px 32px -12px oklch(0.3 0.12 var(--shadow-hue) / 0.3);
+}
+
+/* Menus land on top of links and tasks, so they're opaque. */
+[data-slot="dropdown-menu-content"],
+[data-slot="select-content"],
+[data-slot="context-menu-content"] {
+	background-color: var(--surface-base);
+}
+
+/* Over a dimmed overlay a translucent dialog just turns grey, so it's near-opaque and the blur moves to the overlay. */
+[data-slot="dialog-content"] {
+	background-color: color-mix(in oklab, var(--surface-base) 94%, transparent);
+	background-image: linear-gradient(
+		150deg,
+		color-mix(in oklab, var(--primary) 7%, transparent),
+		transparent 55%,
+		color-mix(in oklab, var(--brand-2) 6%, transparent)
+	);
+	backdrop-filter: blur(16px) saturate(150%);
+	box-shadow:
+		0 2px 8px oklch(0.2 0.04 var(--shadow-hue) / 0.08),
+		0 24px 60px -20px oklch(0.35 0.14 var(--shadow-hue) / 0.35);
+}
+
+[data-slot="dialog-overlay"] {
+	backdrop-filter: blur(4px);
+}
+
+[data-slot="button"].bg-primary {
+	background-image: var(--gradient-brand);
+}
+
+[data-slot="button"].bg-primary:hover:not(:disabled) {
+	box-shadow: 0 6px 20px -6px
+		color-mix(in oklab, var(--primary) 50%, transparent);
+}
+
+/* Settings → Appearance, stamped on <html> by hooks.server.ts. Accents also apply to any element, for the swatches. */
+:root[data-corners="boxy"] {
+	--radius: 0.125rem;
+}
+
+:root[data-font="mono"] {
+	--app-font:
+		"JetBrains Mono Variable", ui-monospace, "SFMono-Regular", "Menlo",
+		monospace;
+}
+
+[data-accent="bordeaux"] {
+	--primary: oklch(0.44 0.15 8);
+	--brand-2: oklch(0.56 0.17 350);
+	--brand-3: oklch(0.68 0.12 40);
+	--shadow-hue: 8;
+}
+
+[data-accent="blue"] {
+	--primary: oklch(0.52 0.2 262);
+	--brand-2: oklch(0.64 0.16 220);
+	--brand-3: oklch(0.7 0.13 195);
+	--shadow-hue: 262;
+}
+
+[data-accent="teal"] {
+	--primary: oklch(0.5 0.13 195);
+	--brand-2: oklch(0.66 0.14 175);
+	--brand-3: oklch(0.7 0.13 230);
+	--shadow-hue: 195;
+}
+
+[data-accent="green"] {
+	--primary: oklch(0.5 0.15 150);
+	--brand-2: oklch(0.66 0.16 135);
+	--brand-3: oklch(0.7 0.12 190);
+	--shadow-hue: 150;
+}
+
+[data-accent="amber"] {
+	--primary: oklch(0.55 0.16 65);
+	--brand-2: oklch(0.68 0.17 45);
+	--brand-3: oklch(0.72 0.13 95);
+	--shadow-hue: 65;
+}
+
+[data-accent="rose"] {
+	--primary: oklch(0.53 0.21 12);
+	--brand-2: oklch(0.65 0.19 350);
+	--brand-3: oklch(0.7 0.15 30);
+	--shadow-hue: 12;
+}
+
+/* The same hues a couple of steps lighter, so text-primary stays legible on a dark surface. */
+.dark[data-accent="bordeaux"],
+.dark [data-accent="bordeaux"] {
+	--primary: oklch(0.62 0.17 12);
+}
+.dark[data-accent="blue"],
+.dark [data-accent="blue"] {
+	--primary: oklch(0.72 0.16 262);
+}
+.dark[data-accent="teal"],
+.dark [data-accent="teal"] {
+	--primary: oklch(0.74 0.12 195);
+}
+.dark[data-accent="green"],
+.dark [data-accent="green"] {
+	--primary: oklch(0.74 0.14 150);
+}
+.dark[data-accent="amber"],
+.dark [data-accent="amber"] {
+	--primary: oklch(0.78 0.14 70);
+}
+.dark[data-accent="rose"],
+.dark [data-accent="rose"] {
+	--primary: oklch(0.72 0.17 12);
 }

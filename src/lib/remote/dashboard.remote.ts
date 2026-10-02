@@ -1,5 +1,6 @@
 import { error } from "@sveltejs/kit";
 import { z } from "zod";
+import { appearanceSchema } from "#lib/appearance.ts";
 import { SECTIONS } from "#lib/layout.ts";
 import {
 	backupFileSchema,
@@ -9,6 +10,7 @@ import {
 	reorderPayloadSchema,
 } from "#lib/model.ts";
 import { Dashboard } from "#lib/server/dashboard.ts";
+import { AppearanceSettings } from "#lib/server/settings/appearance-settings.ts";
 import { LayoutSettings } from "#lib/server/settings/layout-settings.ts";
 import { command, form } from "$app/server";
 
@@ -63,4 +65,8 @@ export const restoreBackup = command(backupFileSchema, (backup) => {
 
 export const saveLayout = command(z.array(z.enum(SECTIONS)), (layout) => {
 	new LayoutSettings().set(layout);
+});
+
+export const saveAppearance = command(appearanceSchema, (appearance) => {
+	new AppearanceSettings().set(appearance);
 });

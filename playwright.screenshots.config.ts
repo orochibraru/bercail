@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// Manual only: `bun run screenshots` regenerates docs/images/. Nothing in CI or the hooks runs it.
+// `bun run screenshots` regenerates docs/images/. CI runs it after each release, never on PRs or in the hooks.
 const APP_PORT = 4998;
 
 export default defineConfig({

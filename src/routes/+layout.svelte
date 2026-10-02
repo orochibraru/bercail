@@ -3,9 +3,13 @@
 	import { Toaster } from 'svelte-sonner';
 	import '../app.css';
 	import { ModeWatcher } from 'mode-watcher';
+	import { applyAppearance } from '#lib/appearance.ts';
 	import Header from '#lib/components/Header.svelte';
 
 	let { children, data } = $props();
+
+	// A page the service worker painted from cache can carry an older appearance until data refreshes.
+	$effect(() => applyAppearance(data.appearance));
 
 	// Tells the new tab extension the dashboard loaded, and when it's navigated away, maybe to a sign-in page.
 	onMount(() => {

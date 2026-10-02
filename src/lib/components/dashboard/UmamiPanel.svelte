@@ -15,7 +15,7 @@
 
 <div class="grid grid-cols-1 gap-2.5 xl:grid-cols-2">
 	{#each websites as site (site.id)}
-		<div class="border-border bg-card min-w-0 rounded-lg border px-4 py-3">
+		<div class="panel min-w-0 px-4 py-3">
 			<div class="flex items-center gap-2.5">
 				<ChartLineIcon class="text-primary size-6 flex-none" />
 				<a
@@ -43,18 +43,16 @@
 						</div>
 						<div class="text-primary/80 mt-0.5 text-xs">visitors</div>
 						<div class="mt-1 flex items-baseline gap-1" title="{range.pageviews} views">
-							<span class="text-sm leading-none font-bold text-sky-600 dark:text-sky-400"
+							<span class="text-brand-2 text-sm leading-none font-bold"
 								>{compact.format(range.pageviews)}</span
 							>
-							<span class="text-xs text-sky-600/80 dark:text-sky-400/80">views</span>
+							<span class="text-brand-2/80 text-xs">views</span>
 						</div>
 					</div>
 				{/each}
 			</div>
 		</div>
 	{:else}
-		<p class="border-border bg-card text-muted-foreground rounded-lg border px-4 py-3 text-sm">
-			No websites in Umami yet.
-		</p>
+		<p class="panel text-muted-foreground px-4 py-3 text-sm">No websites in Umami yet.</p>
 	{/each}
 </div>

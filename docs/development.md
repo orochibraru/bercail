@@ -24,9 +24,16 @@ The hooks format, lint, type check and test on commit, scan for secrets and typo
 
 `bun run screenshots` builds the app, starts it on a blank database and drives it with Playwright:
 it restores a backup of common homelab apps, connects Umami, then captures the dashboard, the
-search palette and Settings in light and dark. A local stand-in answers the link checks and the
-Umami API, so nothing outside your machine is needed besides the weather and the icons. It only
-runs when you call it. Run `bunx playwright install chromium` once first.
+search palette, Settings and the appearance options in light and dark. A local stand-in answers the link checks and the
+Umami API, so nothing outside your machine is needed besides the weather and the icons. Run
+`bunx playwright install chromium` once first.
+
+It then runs `bun run graphics`, which frames `dashboard-dark.webp` in a browser window next to a
+tagline and writes `feature.webp`: the README hero and the project image on orochibraru.com. Run it
+alone to re-lay the hero without retaking the shots.
+
+CI reruns both after every release and commits the result to `main`, so images changed in a pull
+request get overwritten by the next release.
 
 ## Stack
 

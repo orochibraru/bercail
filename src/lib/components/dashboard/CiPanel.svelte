@@ -22,19 +22,19 @@
 	);
 </script>
 
-<div class="border-border bg-card min-w-0 rounded-lg border px-6 py-5">
-	<div class="flex items-center gap-3">
-		<WorkflowIcon class="text-primary size-9 flex-none" />
-		<span class="text-foreground text-lg font-bold">CI</span>
-		<span class="text-muted-foreground text-sm">
+<div class="panel min-w-0 px-4 py-3">
+	<div class="flex items-center gap-2.5">
+		<WorkflowIcon class="text-primary size-6 flex-none" />
+		<span class="text-foreground text-base font-bold">CI</span>
+		<span class="text-muted-foreground text-xs font-medium">
 			{failing ? `${failing} failing` : 'All green'}
 		</span>
-		<RefreshButton section="ci" label="CI" class="ml-auto" />
+		<RefreshButton section="ci" label="CI" class="-my-1 -mr-2 ml-auto" />
 	</div>
 	{#if repos.length === 0}
 		<p class="text-muted-foreground mt-3 text-sm">No repositories yet. Pick some from Settings.</p>
 	{:else}
-		<ul class="mt-3 flex flex-col">
+		<ul class="mt-2 flex flex-col">
 			{#each repos as repo (repo.fullName)}
 				{@const [owner, name] = repo.fullName.split('/')}
 				{@const attention = repo.workflows.filter(

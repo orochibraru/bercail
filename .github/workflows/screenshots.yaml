@@ -1,0 +1,79 @@
+name: Screenshots
+on:
+  workflow_dispatch:
+  workflow_call:
+    secrets:
+      DEPLOY_KEY:
+        required: true
+      DOCS_TRIGGER_TOKEN:
+        required: true
+
+env:
+  TZ: Europe/Paris
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  CI: true
+
+permissions:
+  contents: read
+
+jobs:
+  screenshots:
+    name: Refresh Screenshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # The branch head, not the triggering commit: the release commit lands on top of it.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Install Playwright's Chromium
+        run: bunx playwright install --with-deps chromium
+
+      - name: Capture
+        run: bun run screenshots
+
+      - name: Upload the failure context
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: screenshots-test-results
+          path: test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Commit them
+        id: commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/images
+          if git diff --cached --quiet; then
+            echo "Screenshots are unchanged."
+            exit 0
+          fi
+          git commit -m "chore(docs): refresh screenshots [skip ci]"
+          git pull --rebase origin "$GITHUB_REF_NAME"
+          git push
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+
+      # [skip ci] also skips docs-update.yaml, so the docs build is triggered here.
+      - name: Trigger docs build
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          DOCS_TRIGGER_TOKEN: ${{ secrets.DOCS_TRIGGER_TOKEN }}
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: token $DOCS_TRIGGER_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/orochibraru/orochibraru/dispatches \
+            -d '{"event_type":"docs-update"}'

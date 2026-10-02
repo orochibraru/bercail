@@ -202,7 +202,7 @@
 		}
 	}
 
-	const shown = 8;
+	const shown = 6;
 	const DAY_MS = 24 * 60 * 60 * 1000;
 
 	/** "2026-09-18" is a local date, not UTC midnight. */
@@ -252,7 +252,7 @@
 {/snippet}
 
 {#snippet taskList(items: typeof rows)}
-	<ul class="mt-3 flex flex-col">
+	<ul class="mt-2.5 grid gap-2 @lg:grid-cols-2 @4xl:grid-cols-3">
 		{#each items as { task, done: isDone } (task.uid)}
 			{@const due = task.due ? dueLabel(task.due) : null}
 			<ContextMenu.Root>
@@ -260,14 +260,14 @@
 					{#snippet child({ props })}
 						<li
 							{...props}
-							class="border-border flex items-center gap-3 border-b py-1 last:border-b-0"
+							class="group bg-muted/60 hover:bg-muted flex min-w-0 items-center gap-2.5 rounded-md px-3 py-2 transition-colors"
 						>
 							<button
 								onclick={() => setDone(task, !isDone)}
 								title={isDone ? 'Mark as not done' : 'Mark as done'}
 								aria-label="{isDone ? 'Mark as not done' : 'Mark as done'}: {task.title}"
 								aria-pressed={isDone}
-								class="group -m-1 flex flex-none cursor-pointer items-center justify-center rounded-full p-1"
+								class="group/check -m-1 flex flex-none cursor-pointer items-center justify-center rounded-full p-1"
 							>
 								<span
 									class={cn(
@@ -279,59 +279,66 @@
 										class={cn(
 											'size-2.5 stroke-[4] text-white',
 											!isDone &&
-												'group-hover:text-muted-foreground opacity-0 group-hover:opacity-100'
+												'group-hover/check:text-muted-foreground opacity-0 group-hover/check:opacity-100'
 										)}
 									/>
 								</span>
 							</button>
-							<span
-								class={cn(
-									'min-w-0 flex-1 truncate text-sm',
-									isDone ? 'text-muted-foreground line-through' : 'text-foreground'
-								)}
-								title={task.title}>{task.title}</span
-							>
-							<span class="text-muted-foreground hidden flex-none text-xs sm:inline"
-								>{task.list}</span
-							>
-							<span
-								class={cn(
-									'w-28 flex-none text-right text-xs whitespace-nowrap',
-									due?.overdue && !isDone
-										? 'font-semibold text-red-600 dark:text-red-400'
-										: 'text-muted-foreground'
-								)}>{due?.text}</span
-							>
-							<div class="flex w-20 flex-none justify-end gap-1">
-								{#if isDone}
-									<Button
-										variant="ghost"
-										size="sm"
-										class="h-7"
-										onclick={() => setDone(task, false)}
-									>
-										<Undo2Icon />
-										Cancel
-									</Button>
-								{:else}
+							<div class="min-w-0 flex-1 leading-tight">
+								<div
+									class={cn(
+										'truncate text-sm font-medium',
+										isDone ? 'text-muted-foreground line-through' : 'text-foreground'
+									)}
+									title={task.title}
+								>
+									{task.title}
+								</div>
+								<div class="text-muted-foreground mt-0.5 truncate text-xs">
+									{#if due}
+										<span
+											class={cn(
+												due.overdue && !isDone && 'font-semibold text-red-600 dark:text-red-400'
+											)}>{due.text}</span
+										>
+										·
+									{/if}
+									{task.list}
+								</div>
+							</div>
+							{#if isDone}
+								<Button
+									variant="ghost"
+									size="sm"
+									class="-my-1 h-7 flex-none"
+									onclick={() => setDone(task, false)}
+								>
+									<Undo2Icon />
+									Cancel
+								</Button>
+							{:else}
+								<!-- Out of the way until the row is pointed at; touch screens always show them. -->
+								<div
+									class="flex flex-none gap-0.5 transition-opacity pointer-fine:opacity-0 pointer-fine:group-focus-within:opacity-100 pointer-fine:group-hover:opacity-100"
+								>
 									<button
 										onclick={() => openForm(task)}
 										title="Edit task"
 										aria-label="Edit {task.title}"
-										class="text-muted-foreground hover:bg-muted hover:text-foreground flex size-7 cursor-pointer items-center justify-center rounded"
+										class="text-muted-foreground hover:bg-card hover:text-foreground flex size-6 cursor-pointer items-center justify-center rounded"
 									>
-										<PenBoxIcon class="size-4" />
+										<PenBoxIcon class="size-3.5" />
 									</button>
 									<button
 										onclick={() => confirmDelete(task)}
 										title="Delete task"
 										aria-label="Delete {task.title}"
-										class="hover:bg-muted flex size-7 cursor-pointer items-center justify-center rounded text-red-600 dark:text-red-500"
+										class="hover:bg-card flex size-6 cursor-pointer items-center justify-center rounded text-red-600 dark:text-red-500"
 									>
-										<TrashIcon class="size-4" />
+										<TrashIcon class="size-3.5" />
 									</button>
-								{/if}
-							</div>
+								</div>
+							{/if}
 						</li>
 					{/snippet}
 				</ContextMenu.Trigger>
@@ -366,7 +373,7 @@
 			<Dialog.Title>All tasks</Dialog.Title>
 			<Dialog.Description>{openCount} open</Dialog.Description>
 		</Dialog.Header>
-		<div class="-mx-6 max-h-[70vh] overflow-y-auto px-6">
+		<div class="@container -mx-6 max-h-[70vh] overflow-y-auto px-6">
 			{@render taskList(rows)}
 		</div>
 	</Dialog.Content>
@@ -495,16 +502,16 @@
 	</Dialog.Content>
 </Dialog.Root>
 
-<div class="border-border bg-card min-w-0 rounded-lg border px-6 py-5">
-	<div class="flex items-center gap-3">
-		<ListTodoIcon class="text-primary size-9 flex-none" />
-		<span class="text-foreground text-lg font-bold">Tasks</span>
-		<span class="text-muted-foreground text-sm">{openCount} open</span>
+<div class="panel @container min-w-0 px-4 py-3">
+	<div class="flex items-center gap-2.5">
+		<ListTodoIcon class="text-primary size-6 flex-none" />
+		<span class="text-foreground text-base font-bold">Tasks</span>
+		<span class="text-muted-foreground text-xs font-medium">{openCount} open</span>
 		{#if lists.length > 0}
 			<Button
 				variant="ghost"
 				size="sm"
-				class="ml-auto"
+				class="-my-1 ml-auto h-7"
 				aria-label="Add task"
 				onclick={() => openForm()}
 			>
@@ -512,14 +519,18 @@
 				Add
 			</Button>
 		{/if}
-		<RefreshButton section="tasks" label="Tasks" class={cn(lists.length === 0 && 'ml-auto')} />
+		<RefreshButton
+			section="tasks"
+			label="Tasks"
+			class={cn('-my-1 -mr-2', lists.length === 0 && 'ml-auto')}
+		/>
 	</div>
 	{#if rows.length === 0}
-		<p class="text-muted-foreground mt-3 text-sm">Nothing to do.</p>
+		<p class="text-muted-foreground mt-2.5 text-sm">Nothing to do.</p>
 	{:else}
 		{@render taskList(rows.slice(0, shown))}
 		{#if rows.length > shown}
-			<Button variant="link" size="sm" class="mt-1 px-0" onclick={() => (allOpen = true)}>
+			<Button variant="link" size="sm" class="mt-1 h-7 px-0" onclick={() => (allOpen = true)}>
 				and {rows.length - shown} more
 			</Button>
 		{/if}

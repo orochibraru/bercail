@@ -3,7 +3,7 @@
 </script>
 
 <div
-	class="border-border bg-card grid grid-cols-2 items-center gap-x-6 gap-y-2.5 rounded-lg border px-4 py-2 sm:grid-cols-3 lg:grid-cols-5"
+	class="panel grid grid-cols-2 items-center gap-x-6 gap-y-2.5 px-4 py-2 sm:grid-cols-3 lg:grid-cols-5"
 >
 	{#each { length: 5 } as _, i (i)}
 		<div class="flex items-center gap-2.5">

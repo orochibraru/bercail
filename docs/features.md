@@ -1,6 +1,6 @@
 # Features
 
-![The dashboard](images/dashboard.png) ![The dashboard, dark](images/dashboard-dark.png)
+![The dashboard](images/dashboard.webp) ![The dashboard, dark](images/dashboard-dark.webp)
 
 - **Links in groups.** Each link has a title, description, URL, target (same or new tab) and an
   icon, either an image URL or a name from [Dashboard Icons](https://dashboardicons.com/icons).
@@ -21,11 +21,18 @@
 - **System stats.** CPU, RAM, disk, temperature and GPU gauges for the host the app runs on.
 - **Search.** `Cmd+K` / `Ctrl+K` opens a palette to jump to any link or search the web.
 - **Backup and restore.** Export your groups and links to JSON from Settings, and import them back.
-- **Light, dark and system themes.**
+- **Appearance.** Light, dark or system per device, and for every device a Bordeaux, blue, teal,
+  green, amber or rose accent, a sans or monospace font, and rounded or boxy corners.
 
 The page refreshes its stats every 5 seconds. Drag a section by the grip in its left margin to
 reorder the dashboard; the order is saved on the server.
 
-![The search palette](images/search.png) ![The search palette, dark](images/search-dark.png)
+![The search palette](images/search.webp) ![The search palette, dark](images/search-dark.webp)
 
-![Settings](images/settings.png) ![Settings, dark](images/settings-dark.png)
+![Settings](images/settings.webp) ![Settings, dark](images/settings-dark.webp)
+
+![Appearance settings](images/appearance.webp) ![Appearance settings, dark](images/appearance-dark.webp)
+
+The same dashboard in teal, monospace and boxy:
+
+![A teal, monospace, boxy dashboard](images/dashboard-custom.webp) ![A teal, monospace, boxy dashboard, dark](images/dashboard-custom-dark.webp)

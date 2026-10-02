@@ -31,12 +31,12 @@
 		const value = stat.key === 'temperature' ? (stat.percent ?? 0) + 20 : (stat.percent ?? 0);
 		if (value >= 85) return 'text-red-600';
 		if (value >= 65) return 'text-yellow-600';
-		return 'text-blue-600';
+		return 'text-primary';
 	}
 </script>
 
 <div
-	class="border-border bg-card grid grid-cols-2 items-center gap-x-6 gap-y-2.5 rounded-lg border px-4 py-2 sm:grid-cols-3 lg:grid-cols-5"
+	class="panel grid grid-cols-2 items-center gap-x-6 gap-y-2.5 px-4 py-2 sm:grid-cols-3 lg:grid-cols-5"
 	title="Last updated: {new Date(lastUpdated).toLocaleString()}"
 >
 	{#each stats as stat (stat.key)}

@@ -83,9 +83,7 @@
 	};
 </script>
 
-<div
-	class="border-border bg-card flex min-h-14 flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border px-4 py-2.5"
->
+<div class="panel flex min-h-14 flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5">
 	{#if weather}
 		{@const CurrentIcon = icons[weather.current.condition]}
 		<div class="flex items-center gap-3">

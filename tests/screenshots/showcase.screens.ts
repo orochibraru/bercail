@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { Image, write } from "bun";
 
 const HOMELAB = "http://localhost:4999";
 
@@ -71,11 +72,11 @@ const backup = {
 async function shoot(page: Page, name: string, fullPage = false) {
 	for (const colorScheme of ["light", "dark"] as const) {
 		await page.emulateMedia({ colorScheme });
-		await page.screenshot({
-			path: `docs/images/${colorScheme === "dark" ? `${name}-dark` : name}.png`,
-			fullPage,
-			animations: "disabled",
-		});
+		const png = await page.screenshot({ fullPage, animations: "disabled" });
+		await write(
+			`docs/images/${colorScheme === "dark" ? `${name}-dark` : name}.webp`,
+			await new Image(png).webp({ quality: 90 }).bytes(),
+		);
 	}
 }
 
@@ -126,7 +127,9 @@ test("showcase", async ({ page }) => {
 
 	// Not in any screenshot: checks that adding a task reaches the server and shows up.
 	await page.getByRole("button", { name: "Add task" }).click();
-	await page.getByLabel("Task title").fill("Rotate the backup drives");
+	await page
+		.getByLabel("Title", { exact: true })
+		.fill("Rotate the backup drives");
 	await page.getByLabel("Due", { exact: true }).click();
 	await page.getByRole("option", { name: "Custom" }).click();
 	await page.getByRole("button", { name: "Due date" }).click();
@@ -139,40 +142,38 @@ test("showcase", async ({ page }) => {
 	await page.getByRole("button", { name: "Add", exact: true }).click();
 	await expect(page.getByText("Task added")).toBeVisible();
 
-	await page.getByLabel("Task title").fill("Water the plants");
+	await page.getByRole("button", { name: "Add task" }).click();
+	await page.getByLabel("Title", { exact: true }).fill("Water the plants");
 	await page.getByLabel("Due", { exact: true }).click();
 	await page.getByRole("option", { name: /^Tomorrow at 9/ }).click();
 	await page.getByRole("button", { name: "Add", exact: true }).click();
 	await expect(page.getByText("Task added")).toHaveCount(2);
-	await page.getByRole("button", { name: "Cancel" }).click();
 
-	await page.getByRole("button", { name: /^and \d+ more$/ }).click();
-	const allTasks = page.getByRole("dialog");
-	const added = allTasks
-		.getByRole("listitem")
-		.filter({ hasText: "Rotate the backup drives" });
+	// Task tiles are the only list items on the dashboard.
+	const tiles = page.locator("li");
+	const added = tiles.filter({ hasText: "Rotate the backup drives" });
 	await expect(added).toContainText("Home");
 	await expect(added).toContainText("Today 11:30 PM");
 	await expect(added.locator(".border-red-500")).toHaveCount(1);
-	await expect(
-		allTasks.getByRole("listitem").filter({ hasText: "Water the plants" }),
-	).toContainText("Tomorrow 9:00 AM");
-	await expect(allTasks.getByRole("listitem")).toHaveCount(11);
-	await page.keyboard.press("Escape");
-	await expect(allTasks).toBeHidden();
+	await expect(tiles.filter({ hasText: "Water the plants" })).toContainText(
+		"Tomorrow 9:00 AM",
+	);
+	await expect(tiles).toHaveCount(5);
 
 	await page
 		.getByRole("button", { name: "Edit Water the plants", exact: true })
 		.click();
-	await expect(page.getByLabel("Task title")).toHaveValue("Water the plants");
+	await expect(page.getByLabel("Title", { exact: true })).toHaveValue(
+		"Water the plants",
+	);
 	await expect(page.getByLabel("Due time")).toHaveValue("09:00");
-	await page.getByLabel("Task title").fill("Water the balcony plants");
+	await page
+		.getByLabel("Title", { exact: true })
+		.fill("Water the balcony plants");
 	await page.getByRole("radio", { name: "Medium priority" }).click();
 	await page.getByRole("button", { name: "Save", exact: true }).click();
 	await expect(page.getByText("Task saved")).toBeVisible();
-	const edited = page
-		.getByRole("listitem")
-		.filter({ hasText: "Water the balcony plants" });
+	const edited = tiles.filter({ hasText: "Water the balcony plants" });
 	await expect(edited).toContainText("Tomorrow 9:00 AM");
 	await expect(edited.locator(".border-amber-500")).toHaveCount(1);
 
@@ -194,4 +195,24 @@ test("showcase", async ({ page }) => {
 	await page.keyboard.press("ControlOrMeta+k");
 	await page.getByPlaceholder("Type a command or search...").fill("ra");
 	await shoot(page, "search");
+
+	await page.goto("/settings");
+	await page.waitForLoadState("networkidle");
+	await page.getByRole("button", { name: "Teal" }).click();
+	await page.getByRole("button", { name: "Mono" }).click();
+	await page.getByRole("button", { name: "Boxy" }).click();
+	await expect(page.getByRole("button", { name: "Boxy" })).toHaveAttribute(
+		"aria-pressed",
+		"true",
+	);
+	await shoot(page, "appearance");
+
+	// A fresh load proves the choice was saved and stamped on <html> by the server.
+	await page.goto("/");
+	await expect(page.locator("html")).toHaveAttribute("data-accent", "teal");
+	await expect(page.locator("html")).toHaveAttribute("data-font", "mono");
+	await expect(page.locator("html")).toHaveAttribute("data-corners", "boxy");
+	await expect(page.getByLabel("Checking")).toHaveCount(0);
+	await page.waitForLoadState("networkidle");
+	await shoot(page, "dashboard-custom");
 });

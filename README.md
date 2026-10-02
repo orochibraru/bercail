@@ -3,10 +3,9 @@
 A self-hosted start page for your homelab. It shows the weather and your server's vitals at the
 top, and your links below, each with a live online/offline indicator.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/images/dashboard-dark.png">
-  <img alt="The Bercail dashboard" src="docs/images/dashboard.png">
-</picture>
+<!-- Regenerate with `bun run screenshots`; do not edit by hand. -->
+
+[![Bercail: your homelab, on every new tab](docs/images/feature.webp)](docs/features.md)
 
 ## Features
 
@@ -26,12 +25,13 @@ top, and your links below, each with a live online/offline indicator.
 - **System stats.** CPU, RAM, disk, temperature and GPU gauges for the host the app runs on.
 - **Search.** `Cmd+K` / `Ctrl+K` opens a palette to jump to any link or search the web.
 - **Backup and restore.** Export your groups and links to JSON from Settings, and import them back.
-- **Light, dark and system themes.**
+- **Appearance.** Light, dark or system per device, and for every device a Bordeaux, blue, teal,
+  green, amber or rose accent, a sans or monospace font, and rounded or boxy corners.
 
 The page refreshes its stats every 5 seconds.
 
-![The search palette](docs/images/search.png)
-![Settings](docs/images/settings.png)
+![The search palette](docs/images/search.webp)
+![Settings](docs/images/settings.webp)
 
 ## Running with Docker Compose
 

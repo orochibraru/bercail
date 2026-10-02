@@ -25,19 +25,12 @@ function icsDate(days: number, hour?: number): string {
 }
 
 const seed: Record<string, [string, string | null, number][]> = {
+	// One row of tiles, so the links still show in the README hero.
 	Homelab: [
 		["Renew the domain", icsDate(-1), 1],
 		["Replace the UPS battery", icsDate(0, 18), 5],
-		["Test restoring a Vaultwarden backup", icsDate(1), 1],
-		["Update Proxmox to the new release", icsDate(3, 20), 5],
-		["Label the cables in the rack", null, 9],
-		["Try out a new dashboard theme", null, 9],
 	],
-	Home: [
-		["Take the bins out", icsDate(0, 20), 0],
-		["Book the boiler service", icsDate(9), 0],
-		["Fix the garden gate", null, 0],
-	],
+	Home: [["Take the bins out", icsDate(0, 20), 0]],
 };
 
 /** List name -> file name -> iCalendar text. */

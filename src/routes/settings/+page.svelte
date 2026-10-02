@@ -10,9 +10,11 @@
 	import type { Snippet } from 'svelte';
 	import { setMode, userPrefersMode } from 'mode-watcher';
 	import { toast } from 'svelte-sonner';
+	import { invalidateAll } from '$app/navigation';
+	import { ACCENTS, applyAppearance, type Appearance } from '#lib/appearance.ts';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import { Input } from '#lib/components/ui/input/index.ts';
-	import { exportBackup, restoreBackup } from '#lib/remote/dashboard.remote.ts';
+	import { exportBackup, restoreBackup, saveAppearance } from '#lib/remote/dashboard.remote.ts';
 	import {
 		clearGithubSettings,
 		getGithubSettings,
@@ -35,6 +37,8 @@
 		setWeatherLocation
 	} from '#lib/remote/weather.remote.ts';
 
+	let { data } = $props();
+
 	let loading: boolean = $state(false);
 	let backupLoading: boolean = $state(false);
 	let restoreLoading: boolean = $state(false);
@@ -45,6 +49,27 @@
 		theme: 'dark' | 'light' | 'system';
 		text: string;
 	};
+
+	let appearance = $derived<Appearance>({ ...data.appearance });
+
+	async function updateAppearance(change: Partial<Appearance>) {
+		const previous = appearance;
+		appearance = { ...appearance, ...change };
+		applyAppearance(appearance);
+		try {
+			await saveAppearance(appearance);
+		} catch {
+			appearance = previous;
+			applyAppearance(previous);
+			toast.error('Failed to save the appearance');
+			return;
+		}
+		// Or the service worker paints the next new tab with the old look.
+		if ('caches' in window) {
+			for (const key of await caches.keys()) await (await caches.open(key)).delete('/');
+		}
+		await invalidateAll();
+	}
 
 	type GeoLocation = { latitude: number; longitude: number; label: string };
 	type GeocodingResult = { label: string; latitude: number; longitude: number };
@@ -326,9 +351,7 @@
 </svelte:head>
 
 {#snippet section(title: string, description: string, content: Snippet)}
-	<section
-		class="border-border bg-card grid gap-4 rounded-lg border p-5 md:grid-cols-[14rem_1fr] md:gap-8"
-	>
+	<section class="panel grid gap-4 p-5 md:grid-cols-[14rem_1fr] md:gap-8">
 		<div>
 			<h2 class="text-foreground font-semibold">{title}</h2>
 			<p class="text-muted-foreground mt-1 text-sm">{description}</p>
@@ -356,6 +379,82 @@
 		{@render themeButton({ icon: ComputerIcon, theme: 'system', text: 'System' })}
 		{@render themeButton({ icon: SunIcon, theme: 'light', text: 'Light' })}
 		{@render themeButton({ icon: MoonIcon, theme: 'dark', text: 'Dark' })}
+	</div>
+{/snippet}
+
+{#snippet option(label: string, selected: boolean, onclick: () => void, content: Snippet)}
+	<Button
+		class="flex-1"
+		variant={selected ? 'default' : 'outline'}
+		{onclick}
+		aria-pressed={selected}
+	>
+		{@render content()}
+		{label}
+	</Button>
+{/snippet}
+
+{#snippet appearanceControls()}
+	<div class="flex flex-col gap-4">
+		<div>
+			<p class="text-muted-foreground mb-1.5 text-xs font-medium">Mode, on this device</p>
+			{@render themeControls()}
+		</div>
+		<div>
+			<p class="text-muted-foreground mb-1.5 text-xs font-medium">Accent</p>
+			<div class="flex flex-wrap gap-2.5">
+				{#each ACCENTS as accent (accent)}
+					{@const label = accent[0].toUpperCase() + accent.slice(1)}
+					<button
+						data-accent={accent}
+						onclick={() => updateAppearance({ accent })}
+						aria-pressed={appearance.accent === accent}
+						aria-label={label}
+						title={label}
+						class="from-primary to-brand-2 ring-offset-background aria-pressed:ring-foreground size-8 cursor-pointer rounded-full bg-linear-135 ring-offset-2 aria-pressed:ring-2"
+					></button>
+				{/each}
+			</div>
+		</div>
+		<div>
+			<p class="text-muted-foreground mb-1.5 text-xs font-medium">Font</p>
+			<div class="flex flex-wrap gap-2">
+				{#snippet sansSample()}<span style="font-family: system-ui, sans-serif">Aa</span>{/snippet}
+				{#snippet monoSample()}<span class="font-mono">Aa</span>{/snippet}
+				{@render option(
+					'Sans',
+					appearance.font === 'sans',
+					() => updateAppearance({ font: 'sans' }),
+					sansSample
+				)}
+				{@render option(
+					'Mono',
+					appearance.font === 'mono',
+					() => updateAppearance({ font: 'mono' }),
+					monoSample
+				)}
+			</div>
+		</div>
+		<div>
+			<p class="text-muted-foreground mb-1.5 text-xs font-medium">Corners</p>
+			<div class="flex flex-wrap gap-2">
+				{#snippet roundedSample()}<span class="size-3.5 rounded-[5px] border-2 border-current"
+					></span>{/snippet}
+				{#snippet boxySample()}<span class="size-3.5 border-2 border-current"></span>{/snippet}
+				{@render option(
+					'Rounded',
+					appearance.corners === 'rounded',
+					() => updateAppearance({ corners: 'rounded' }),
+					roundedSample
+				)}
+				{@render option(
+					'Boxy',
+					appearance.corners === 'boxy',
+					() => updateAppearance({ corners: 'boxy' }),
+					boxySample
+				)}
+			</div>
+		</div>
 	</div>
 {/snippet}
 
@@ -571,7 +670,11 @@
 		<h1 class="text-foreground mt-3 text-3xl font-extrabold">Settings</h1>
 	</div>
 
-	{@render section('Theme', 'How the dashboard looks on this device.', themeControls)}
+	{@render section(
+		'Appearance',
+		'Light or dark follows this device. Accent, font and corners apply everywhere the dashboard is open.',
+		appearanceControls
+	)}
 	{@render section(
 		'Weather location',
 		'The city used for the weather panel. Without one, the dashboard asks for your browser location.',

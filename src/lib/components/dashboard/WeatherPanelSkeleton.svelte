@@ -2,9 +2,7 @@
 	import Skeleton from '#lib/components/dashboard/Skeleton.svelte';
 </script>
 
-<div
-	class="border-border bg-card flex min-h-14 flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border px-4 py-2.5"
->
+<div class="panel flex min-h-14 flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5">
 	<div class="flex items-center gap-3">
 		<Skeleton class="size-7 flex-none" />
 		<Skeleton class="h-6 w-12" />

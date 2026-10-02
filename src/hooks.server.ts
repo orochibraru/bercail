@@ -3,6 +3,7 @@ import { dirname } from "node:path";
 import { green, Log } from "@kitql/helpers";
 import { redirect } from "@sveltejs/kit";
 import type { Handle, ServerInit } from "@sveltejs/kit/hooks";
+import { appearanceAttributes } from "#lib/appearance.ts";
 import {
 	authConfig,
 	cookieOptions,
@@ -14,6 +15,7 @@ import {
 } from "#lib/server/auth.ts";
 import { dbFileName } from "#lib/server/db/index.ts";
 import { migrateDatabase } from "#lib/server/db/migrate.ts";
+import { AppearanceSettings } from "#lib/server/settings/appearance-settings.ts";
 
 const logger = new Log("Hooks");
 
@@ -53,5 +55,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 	}
 
-	return resolve(event);
+	// Stamped on <html> so the first paint already has the saved accent, font and corners.
+	return resolve(event, {
+		transformPageChunk: ({ html }) =>
+			html.replace(
+				"%bercail.appearance%",
+				appearanceAttributes(new AppearanceSettings().get()),
+			),
+	});
 };

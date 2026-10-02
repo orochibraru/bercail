@@ -60,11 +60,7 @@
 	}
 </script>
 
-<section
-	role="group"
-	aria-label={group.title}
-	class="border-border bg-card flex flex-col gap-2.5 rounded-lg border p-2.5"
->
+<section role="group" aria-label={group.title} class="panel flex flex-col gap-2.5 p-2.5">
 	<div class="flex items-center justify-between gap-3.5 px-1">
 		<div class="flex min-w-0 items-center gap-2">
 			<span

@@ -112,3 +112,13 @@ jobs:
           rules: breaking=patch,feat=patch,docs=patch,refactor=patch
           prepare: bun run prettier --write CHANGELOG.md && bun run package:extension
           artifacts: dist/bercail-extension.zip=bercail-extension-${version}.zip
+
+  screenshots:
+    name: Screenshots
+    needs: [version, release]
+    # Only when this push cut a release: otherwise the tag is the commit SHA.
+    if: startsWith(needs.version.outputs.tag, 'v')
+    uses: ./.github/workflows/screenshots.yaml
+    secrets:
+      DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+      DOCS_TRIGGER_TOKEN: ${{ secrets.DOCS_TRIGGER_TOKEN }}
