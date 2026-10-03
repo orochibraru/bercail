@@ -14,7 +14,7 @@ export default defineConfig({
 		baseURL: `http://localhost:${APP_PORT}`,
 		viewport: { width: 1440, height: 900 },
 		deviceScaleFactor: 2,
-		// The server assumes https unless told otherwise, and forms fail on an origin mismatch.
+		// The server assumes https without a proxy header, and forms fail on an origin mismatch.
 		extraHTTPHeaders: { "x-forwarded-proto": "http" },
 	},
 	webServer: [

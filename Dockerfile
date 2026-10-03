@@ -45,6 +45,8 @@ EXPOSE 3000/tcp
 
 ENV HOST=0.0.0.0
 ENV PORT=3000
+ENV PROTOCOL_HEADER=x-forwarded-proto
+ENV HOST_HEADER=x-forwarded-host
 
 # uid/gid the server runs as; the entrypoint chowns /app/data to match.
 ENV PUID=10001
