@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.0.13](https://github.com/orochibraru/bercail/compare/v1.0.12...v1.0.13) (2026-10-03)
+
+### ⚠ BREAKING CHANGES
+
+* kit three ([7ed2dac](https://github.com/orochibraru/bercail/commit/7ed2dace2a5a1386859674b39740cbf201be0037))
+* ORIGIN is no longer read. The app assumes https and
+takes the host from the Host header. Behind a reverse proxy, set
+PROTOCOL_HEADER=x-forwarded-proto and HOST_HEADER=x-forwarded-host.
+Serving plain HTTP without a proxy makes forms fail the CSRF check. ([981af24](https://github.com/orochibraru/bercail/commit/981af2493d2cc5c7caed2419412c2722ed74b9a7))
+
+### Features
+
+* kit three ([7ed2dac](https://github.com/orochibraru/bercail/commit/7ed2dace2a5a1386859674b39740cbf201be0037))
+* migrate to @sveltejs/adapter-bun ([981af24](https://github.com/orochibraru/bercail/commit/981af2493d2cc5c7caed2419412c2722ed74b9a7))
+
 ## [1.0.12](https://github.com/orochibraru/bercail/compare/v1.0.11...v1.0.12) (2026-10-02)
 
 ### Features

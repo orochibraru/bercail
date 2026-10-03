@@ -1,7 +1,7 @@
 {
 	"name": "bercail",
 	"private": true,
-	"version": "1.0.12",
+	"version": "1.0.13",
 	"type": "module",
 	"imports": {
 		"#lib/*": "./src/lib/*"
