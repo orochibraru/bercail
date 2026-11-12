@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.15](https://github.com/zedensix/bercail/compare/v1.0.14...v1.0.15) (2026-11-12)
+
+### Bug Fixes
+
+* docs & ref (oro to zn6) ([815c91b](https://github.com/zedensix/bercail/commit/815c91be923d3a71d83c8533de27c951057496e6))
+
 ## [1.0.14](https://github.com/orochibraru/bercail/compare/v1.0.13...v1.0.14) (2026-10-31)
 
 ### Bug Fixes
