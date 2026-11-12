@@ -56,14 +56,40 @@ worker.addEventListener("fetch", (event) => {
 		const network = fetch(event.request);
 		const saved = network.then((response) => {
 			// Dropped on an auth redirect too, so an expired session reaches the sign-in page on the next visit.
-			const copy = response.ok ? response.clone() : null;
+			const copy = response.ok ? stamp(response.clone()) : null;
 			return caches
 				.open(cacheName)
 				.then((cache) => (copy ? cache.put("/", copy) : cache.delete("/")));
 		});
 		event.waitUntil(saved.catch(() => {}));
 		event.respondWith(
-			caches.match("/", { cacheName }).then((cached) => cached ?? network),
+			caches.match("/", { cacheName }).then((cached) => {
+				if (cached && isFresh(cached)) {
+					return cached;
+				}
+				// An old copy would paint hours-old data, then swap everything at once when it refreshes.
+				// Offline, it still beats an error page.
+				return network.catch((error) => cached ?? Promise.reject(error));
+			}),
 		);
 	}
 });
+
+const cachedAtHeader = "x-bercail-cached-at";
+// Short enough that the swap to live data is barely visible, long enough to cover tabs opened in a row.
+const freshForMs = 5 * 60 * 1000;
+
+function stamp(response: Response): Response {
+	const headers = new Headers(response.headers);
+	headers.set(cachedAtHeader, String(Date.now()));
+	return new Response(response.body, {
+		status: response.status,
+		statusText: response.statusText,
+		headers,
+	});
+}
+
+function isFresh(response: Response): boolean {
+	const cachedAt = Number(response.headers.get(cachedAtHeader));
+	return Date.now() - cachedAt < freshForMs;
+}

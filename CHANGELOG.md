@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.14](https://github.com/orochibraru/bercail/compare/v1.0.13...v1.0.14) (2026-10-31)
+
+### Bug Fixes
+
+* skip the cached home page once it's more than five minutes old ([f0aab6a](https://github.com/orochibraru/bercail/commit/f0aab6ad7cbf60ebfb8a28d4626e37b60e8c3d90))
+
+## [1.0.14](https://github.com/orochibraru/bercail/compare/v1.0.13...v1.0.14) (2026-10-31)
+
+### Bug Fixes
+
+* skip the cached home page once it's more than five minutes old ([f0aab6a](https://github.com/orochibraru/bercail/commit/f0aab6ad7cbf60ebfb8a28d4626e37b60e8c3d90))
+
 ## [1.0.13](https://github.com/zedensix/bercail/compare/v1.0.12...v1.0.13) (2026-10-03)
 
 ### ⚠ BREAKING CHANGES

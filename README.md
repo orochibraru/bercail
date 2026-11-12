@@ -119,7 +119,8 @@ sign-in, let `/service-worker.js` through without auth. Browsers fetch that file
 so otherwise the cache never installs.
 
 After the first visit the page is served from a service worker cache, so new tabs open without
-waiting on the server.
+waiting on the server. A copy older than five minutes is skipped for a fresh one, so a tab opened
+after a break doesn't paint stale data and then swap it all out.
 
 ## Development
 
