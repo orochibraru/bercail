@@ -27,7 +27,7 @@ jobs:
       image_tag: pr-${{ github.event.pull_request.number }}
       image_name: orochibraru/bercail
       registry_name: docker.io
-      registry_username: orochibraru
+      registry_username: zedensix
       bake_target: app-ci
     secrets:
       registry_password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -39,7 +39,7 @@ jobs:
     with:
       image_name: orochibraru/bercail
       registry_name: docker.io
-      registry_username: orochibraru
+      registry_username: zedensix
       bake_target: app-ci
     secrets:
       registry_password: ${{ secrets.DOCKERHUB_TOKEN }}

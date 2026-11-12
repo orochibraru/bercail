@@ -9,7 +9,7 @@ group "default" {
 target "app" {
   context    = "."
   dockerfile = "./Dockerfile"
-  tags       = ["orochibraru/bercail:latest", "orochibraru/bercail:${TAG}"]
+  tags       = ["zedensix/bercail:latest", "zedensix/bercail:${TAG}"]
   output     = ["type=docker"]
 }
 

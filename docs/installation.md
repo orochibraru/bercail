@@ -3,7 +3,7 @@
 ```yaml
 services:
   bercail:
-    image: orochibraru/bercail:latest
+    image: zedensix/bercail:latest
     restart: unless-stopped
     ports:
       - '3000:3000'
