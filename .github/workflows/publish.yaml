@@ -38,12 +38,12 @@ jobs:
       - name: Dry-run release to compute the next version
         id: compute
         # The action swallows dry-run output (no version output yet), so run the binary directly.
-        # Keep in step with the orochibraru/releaser@v1 ref below.
+        # Keep in step with the zedensix/releaser ref below.
         env:
           RELEASER_VERSION: "1.2.1"
         run: |
           curl -fsSL -o "$RUNNER_TEMP/releaser" \
-            "https://github.com/orochibraru/releaser/releases/download/v$RELEASER_VERSION/releaser-linux-amd64"
+            "https://github.com/zedensix/releaser/releases/download/v$RELEASER_VERSION/releaser-linux-amd64"
           chmod +x "$RUNNER_TEMP/releaser"
           if ! output="$("$RUNNER_TEMP/releaser" -dry-run -rules breaking=patch,feat=patch,docs=patch,refactor=patch 2>&1)"; then
             echo "$output"
@@ -107,7 +107,7 @@ jobs:
         run: bun install --frozen-lockfile --ignore-scripts
 
       - name: Release
-        uses: orochibraru/releaser@v1
+        uses: zedensix/releaser@ba23a5840fb7ec8db1aa81bff4d4478f6e499020 # v1.7.3
         with:
           rules: breaking=patch,feat=patch,docs=patch,refactor=patch
           prepare: bun run prettier --write CHANGELOG.md && bun run package:extension
