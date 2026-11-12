@@ -2,7 +2,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "docs/**"
+      - 'docs/**'
 
 jobs:
   trigger-docs:
@@ -13,5 +13,5 @@ jobs:
           curl -X POST \
             -H "Authorization: token ${{ secrets.DOCS_TRIGGER_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/orochibraru/orochibraru/dispatches \
+            https://api.github.com/repos/zedensix/zedensix/dispatches \
             -d '{"event_type":"docs-update"}'

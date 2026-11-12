@@ -1,4 +1,4 @@
-// Renders docs/images/feature.webp, the README hero and the project image on orochibraru.com:
+// Renders docs/images/feature.webp, the README hero and the project image on zedensix.com:
 // the dark dashboard screenshot framed in a browser window next to a tagline.
 import { join } from "node:path";
 import process from "node:process";

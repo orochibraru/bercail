@@ -4,7 +4,7 @@ on:
     branches:
       - main
     paths-ignore:
-      - "**/*.md"
+      - '**/*.md'
 
 concurrency:
   group: publish
@@ -40,7 +40,7 @@ jobs:
         # The action swallows dry-run output (no version output yet), so run the binary directly.
         # Keep in step with the zedensix/releaser ref below.
         env:
-          RELEASER_VERSION: "1.2.1"
+          RELEASER_VERSION: '1.2.1'
         run: |
           curl -fsSL -o "$RUNNER_TEMP/releaser" \
             "https://github.com/zedensix/releaser/releases/download/v$RELEASER_VERSION/releaser-linux-amd64"
@@ -67,7 +67,7 @@ jobs:
     with:
       image_tag: ${{ needs.version.outputs.tag }}
       latest: true
-      image_name: orochibraru/bercail
+      image_name: zedensix/bercail
       registry_name: docker.io
       registry_username: zedensix
       bake_target: app-ci
@@ -79,7 +79,7 @@ jobs:
     needs: [version, build]
     uses: ./.github/workflows/docker-manifest.yaml
     with:
-      image_name: orochibraru/bercail
+      image_name: zedensix/bercail
       registry_name: docker.io
       registry_username: zedensix
       bake_target: app-ci

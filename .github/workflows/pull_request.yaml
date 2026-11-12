@@ -25,19 +25,22 @@ jobs:
     uses: ./.github/workflows/docker.yaml
     with:
       image_tag: pr-${{ github.event.pull_request.number }}
-      image_name: orochibraru/bercail
+      image_name: zedensix/bercail
       registry_name: docker.io
       registry_username: zedensix
       bake_target: app-ci
+      push: ${{ !github.event.pull_request.head.repo.fork }}
     secrets:
       registry_password: ${{ secrets.DOCKERHUB_TOKEN }}
 
   publish:
     name: Publish pr-${{ github.event.pull_request.number }}
     needs: [build]
+    # A fork pushed no digests.
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     uses: ./.github/workflows/docker-manifest.yaml
     with:
-      image_name: orochibraru/bercail
+      image_name: zedensix/bercail
       registry_name: docker.io
       registry_username: zedensix
       bake_target: app-ci

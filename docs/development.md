@@ -29,7 +29,7 @@ Umami API, so nothing outside your machine is needed besides the weather and the
 `bunx playwright install chromium` once first.
 
 It then runs `bun run graphics`, which frames `dashboard-dark.webp` in a browser window next to a
-tagline and writes `feature.webp`: the README hero and the project image on orochibraru.com. Run it
+tagline and writes `feature.webp`: the README hero and the project image on zedensix.com. Run it
 alone to re-lay the hero without retaking the shots.
 
 CI reruns both after every release and commits the result to `main`, so images changed in a pull

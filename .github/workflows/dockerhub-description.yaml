@@ -26,6 +26,6 @@ jobs:
         with:
           username: zedensix
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: orochibraru/bercail
+          repository: zedensix/bercail
           short-description: "Self-hosted homelab start page with live status. A Homepage and Homarr alternative."
           enable-url-completion: true
